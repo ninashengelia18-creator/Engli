@@ -17,6 +17,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .eq('id', user.id)
     .single();
 
+  if (!profile?.child_name) redirect('/onboarding');
+
   const { data: subscription } = await supabase
     .from('subscriptions')
     .select('tier, status')

@@ -1,18 +1,21 @@
-import { createClient } from '@/lib/supabase/server';
+import Link from 'next/link';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 
 export default async function AdminLessonsPage() {
-  const supabase = createClient();
-  const { data: lessons } = await supabase
+  const admin = createServiceRoleClient();
+  const { data: lessons } = await admin
     .from('lessons')
-    .select('*, units(title_ka, worlds(title_ka)), exercises(count)')
+    .select('id, title_ka, title_en, is_published, units(title_ka, worlds(title_ka)), exercises(count)')
     .order('display_order');
 
   return (
     <div>
-      <h1 className="text-xl font-extrabold mb-4">Lessons</h1>
-      <p className="text-sm text-ink-light mb-4">
-        To add new lessons, run SQL in Supabase or build a richer admin UI here.
-      </p>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-extrabold">Lessons</h1>
+        <Link href="/admin/lessons/new" className="btn-primary text-sm px-3 py-2">
+          + New lesson
+        </Link>
+      </div>
       <table className="w-full text-sm">
         <thead className="text-xs text-ink-light text-left">
           <tr>
@@ -20,17 +23,32 @@ export default async function AdminLessonsPage() {
             <th>Unit</th>
             <th>Exercises</th>
             <th>Status</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
-          {lessons?.map((l) => (
-            <tr key={l.id} className="border-t border-border">
-              <td className="py-2 font-bold">{l.title_ka}</td>
-              <td className="text-ink-light">{l.units?.title_ka}</td>
-              <td>{l.exercises?.[0]?.count ?? 0}</td>
-              <td>{l.is_published ? '✅' : '📝'}</td>
-            </tr>
-          ))}
+          {lessons?.map((l) => {
+            const unit = Array.isArray(l.units) ? l.units[0] : l.units;
+            const world = unit && (Array.isArray(unit.worlds) ? unit.worlds[0] : unit.worlds);
+            const exerciseCount = Array.isArray(l.exercises)
+              ? (l.exercises[0] as { count?: number } | undefined)?.count ?? 0
+              : 0;
+            return (
+              <tr key={l.id} className="border-t border-border">
+                <td className="py-2 font-bold">{l.title_ka}</td>
+                <td className="text-ink-light">
+                  {world?.title_ka} → {unit?.title_ka}
+                </td>
+                <td>{exerciseCount}</td>
+                <td>{l.is_published ? '✅' : '📝'}</td>
+                <td className="text-right">
+                  <Link href={`/admin/lessons/${l.id}/edit`} className="text-secondary text-xs">
+                    edit
+                  </Link>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

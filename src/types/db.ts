@@ -1,3 +1,5 @@
+export type LearningGoal = 'school' | 'travel' | 'play' | 'future';
+
 export type Profile = {
   id: string;
   email: string | null;
@@ -7,6 +9,7 @@ export type Profile = {
   child_age: number | null;
   parent_phone: string | null;
   preferred_language: 'ka' | 'en';
+  learning_goal: LearningGoal | null;
   hearts: number;
   hearts_refilled_at: string;
   gems: number;
