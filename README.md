@@ -1,0 +1,97 @@
+# Engli — ენგლი 🦊
+
+**Sახალისო ინგლისური ქართველი ბავშვებისთვის** — A Duolingo-style English learning app for Georgian children, built by [Your Next Tutor Inc.](https://learneazy.org)
+
+## What's in here
+
+A complete production-grade Next.js + Supabase + Stripe + Claude AI codebase for a freemium language learning app:
+
+- ✅ Auth (email + Google OAuth, Apple Sign In ready)
+- ✅ Stripe subscriptions (monthly, annual, family tiers, 7-day trial)
+- ✅ Lesson player with 4 working exercise types (Learn, Match, Speak, Build)
+- ✅ Hearts, XP, gems, streaks gamification
+- ✅ AI Tutor chat powered by Claude (Premium feature)
+- ✅ Premium gating throughout
+- ✅ Bilingual UI (Georgian primary, English secondary)
+- ✅ Mobile-first responsive design (max 480px)
+- ✅ PWA manifest + Capacitor config for iOS/Android
+- ✅ Admin scaffold (locked to admin emails)
+- ✅ Full Supabase schema with RLS
+
+## Quick start
+
+### 1. Install
+```bash
+npm install
+```
+
+### 2. Set up Supabase
+1. Create new project at [supabase.com](https://supabase.com)
+2. SQL Editor → run `supabase/migrations/20260427_initial_schema.sql`
+3. Then run `supabase/migrations/20260427_seed_data.sql`
+4. Authentication → Providers → enable Google (and Apple if you want)
+5. Copy URL + anon key + service role key into `.env.local`
+
+### 3. Set up Stripe
+1. [Stripe Dashboard](https://dashboard.stripe.com) → Products → create:
+   - "Premium Monthly" — recurring ₾29/month
+   - "Premium Annual" — recurring ₾174/year
+   - "Family Monthly" — recurring ₾49/month
+2. Copy the price IDs into `.env.local`
+3. For local webhook testing: `stripe listen --forward-to localhost:3000/api/stripe/webhook`
+
+### 4. Set up Anthropic
+- Use the same key as AI Whisper, or create a new one at [console.anthropic.com](https://console.anthropic.com)
+
+### 5. Run
+```bash
+cp .env.example .env.local
+# Fill in all values
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Deploy to Vercel
+
+```bash
+git push origin main
+# Then on vercel.com: Import → connect to repo → set env vars → deploy
+```
+
+Add Stripe webhook URL after deploy: `https://your-domain.com/api/stripe/webhook`
+
+## Mobile apps
+
+```bash
+npm install -D @capacitor/core @capacitor/cli
+npm install @capacitor/ios @capacitor/android
+npx cap init  # already done via capacitor.config.ts
+npm run build && npx next export
+npx cap add ios
+npx cap add android
+npx cap open ios     # opens Xcode
+npx cap open android # opens Android Studio
+```
+
+Submit to App Store and Google Play following their standard flows.
+
+## Where to put energy first
+
+1. **Content, content, content.** The MVP has 1 fully populated lesson. You need 100 to launch.
+2. **Voice recording.** Hire a Georgian-English bilingual voice actor (₾2000) — better than browser TTS for the first impression.
+3. **Onboarding flow.** Add a placement quiz so kids start at the right level.
+4. **Push notifications.** Duolingo's #1 retention mechanic. See `docs/push-notifications.md` (not yet written).
+5. **Apple Sign In.** Required for App Store approval if you have any third-party login.
+
+## Brand
+- Name: **Engli (ენგლი)**
+- Mascot: Foxy 🦊
+- Primary color: #58CC02 (green)
+- Tone: warm, encouraging, child-friendly, never condescending
+
+## License
+Proprietary — © Your Next Tutor Inc. All rights reserved.
+
+---
+Built with ⚡ via Claude. See `CLAUDE.md` for architecture notes.

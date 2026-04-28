@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #58cc02;
+  --primary-dark: #58a700;
+  --secondary: #1cb0f6;
+  --accent: #ffc800;
+  --danger: #ff4b4b;
+}
+
+html,
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white font-extrabold uppercase tracking-wide px-6 py-4 rounded-2xl shadow-[0_4px_0_0_#58A700] active:translate-y-[2px] active:shadow-[0_2px_0_0_#58A700] disabled:bg-border disabled:shadow-[0_4px_0_0_#BFBFBF] disabled:text-ink-light disabled:cursor-not-allowed transition-all duration-75;
+  }
+  .btn-secondary {
+    @apply bg-white text-ink font-extrabold border-2 border-border border-b-4 px-6 py-4 rounded-2xl active:translate-y-[2px] active:border-b-2 transition-all duration-75;
+  }
+  .btn-danger {
+    @apply bg-danger text-white font-extrabold px-6 py-4 rounded-2xl shadow-[0_4px_0_0_#C82323] active:translate-y-[2px] active:shadow-[0_2px_0_0_#C82323] transition-all duration-75;
+  }
+  .card {
+    @apply bg-white border-2 border-border rounded-2xl p-4;
+  }
+  .lesson-node {
+    @apply w-20 h-20 rounded-full bg-primary shadow-[0_6px_0_0_#58A700] flex items-center justify-center text-4xl active:translate-y-[3px] active:shadow-[0_3px_0_0_#58A700] transition-all duration-75 cursor-pointer;
+  }
+  .lesson-node-locked {
+    @apply bg-border shadow-[0_6px_0_0_#BFBFBF] cursor-not-allowed;
+  }
+  .lesson-node-completed {
+    @apply bg-accent shadow-[0_6px_0_0_#E0AE00];
+  }
+  .lesson-node-premium {
+    @apply bg-purple shadow-[0_6px_0_0_#A560E8];
+  }
+}
