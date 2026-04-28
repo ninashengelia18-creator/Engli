@@ -6,24 +6,10 @@ import { Crown, Check, Heart, Brain, Trophy, Sparkles } from 'lucide-react';
 const TIERS = [
   {
     key: 'premium_monthly',
-    title: 'ყოველთვიური',
-    price: '₾29',
+    title: 'Premium',
+    price: '₾1',
     period: '/თვე',
-    badge: null
-  },
-  {
-    key: 'premium_annual',
-    title: 'წლიური',
-    price: '₾174',
-    period: '/წელი',
-    badge: '50% დანაზოგი'
-  },
-  {
-    key: 'family_monthly',
-    title: 'ოჯახური',
-    price: '₾49',
-    period: '/თვე',
-    badge: '4 ბავშვი'
+    badge: 'გამშვები ფასი'
   }
 ];
 
@@ -36,7 +22,7 @@ const FEATURES = [
 ];
 
 export default function UpgradePage() {
-  const [selected, setSelected] = useState('premium_annual');
+  const [selected, setSelected] = useState('premium_monthly');
   const [loading, setLoading] = useState(false);
 
   async function handleSubscribe() {
