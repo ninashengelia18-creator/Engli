@@ -14,7 +14,9 @@ export default async function LearnPage() {
     .select('tier, status')
     .eq('user_id', user.id)
     .single();
-  const isPremium = subscription?.tier !== 'free' && subscription?.status === 'active';
+  const isPremium =
+    subscription?.tier !== 'free' &&
+    (subscription?.status === 'active' || subscription?.status === 'trialing');
 
   const { data: worlds } = await supabase
     .from('worlds')

@@ -24,7 +24,9 @@ export default async function LessonPage({ params }: { params: { id: string } })
     .select('tier, status')
     .eq('user_id', user.id)
     .single();
-  const isPremium = subscription?.tier !== 'free' && subscription?.status === 'active';
+  const isPremium =
+    subscription?.tier !== 'free' &&
+    (subscription?.status === 'active' || subscription?.status === 'trialing');
   const lessonRequiresPremium =
     lesson.units?.is_premium || lesson.units?.worlds?.is_premium;
   if (lessonRequiresPremium && !isPremium) redirect('/upgrade');

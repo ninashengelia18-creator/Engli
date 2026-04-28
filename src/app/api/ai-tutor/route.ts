@@ -23,7 +23,8 @@ export async function POST(req: Request) {
     .select('tier, status')
     .eq('user_id', user.id)
     .single();
-  const isPremium = sub?.tier !== 'free' && sub?.status === 'active';
+  const isPremium =
+    sub?.tier !== 'free' && (sub?.status === 'active' || sub?.status === 'trialing');
   if (!isPremium) {
     return NextResponse.json({ error: 'Premium required', requiresUpgrade: true }, { status: 402 });
   }

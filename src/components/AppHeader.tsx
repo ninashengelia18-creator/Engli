@@ -10,7 +10,9 @@ export default function AppHeader({
   profile: Profile | null;
   subscription: Pick<Subscription, 'tier' | 'status'> | null;
 }) {
-  const isPremium = subscription?.tier !== 'free' && subscription?.status === 'active';
+  const isPremium =
+    subscription?.tier !== 'free' &&
+    (subscription?.status === 'active' || subscription?.status === 'trialing');
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b-2 border-border px-4 py-3 flex items-center justify-between">

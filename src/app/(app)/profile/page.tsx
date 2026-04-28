@@ -21,7 +21,9 @@ export default async function ProfilePage() {
     .eq('user_id', user.id)
     .single();
 
-  const isPremium = subscription?.tier !== 'free' && subscription?.status === 'active';
+  const isPremium =
+    subscription?.tier !== 'free' &&
+    (subscription?.status === 'active' || subscription?.status === 'trialing');
 
   return (
     <main className="px-5 py-6">

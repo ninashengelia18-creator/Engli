@@ -47,7 +47,11 @@ export default function LessonPlayer({ lessonId, lessonTitle, exercises, xpRewar
         is_correct: correct
       });
       if (!correct) {
-        await supabase.rpc('decrement_hearts', { p_user_id: user.id }).catch(() => {});
+        try {
+          await supabase.rpc('decrement_hearts', { p_user_id: user.id });
+        } catch {
+          // best-effort; ignore if RPC fails
+        }
       }
     }
   }

@@ -14,7 +14,8 @@ export default async function AdminUsersPage() {
       <div className="space-y-2">
         {profiles?.map((p) => {
           const sub = (p.subscriptions as unknown as { tier: string; status: string }[] | null)?.[0];
-          const isPremium = sub?.tier !== 'free' && sub?.status === 'active';
+          const isPremium =
+            sub?.tier !== 'free' && (sub?.status === 'active' || sub?.status === 'trialing');
           return (
             <div key={p.id} className="card flex items-center justify-between text-sm">
               <div>
