@@ -53,3 +53,8 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Smoke tests (public pages + API contracts)
+        run: npm run test:smoke
+        env:
+          SMOKE_PORT: 3100

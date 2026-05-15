@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "migrate": "node scripts/migrate.mjs"
+    "migrate": "node scripts/migrate.mjs",
+    "test:smoke": "node tests/smoke/run.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.0",
