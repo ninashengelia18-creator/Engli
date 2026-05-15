@@ -14,6 +14,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/learn');
   }
 
+  const tabs: { href: string; label: string }[] = [
+    { href: '/admin/worlds', label: 'Worlds' },
+    { href: '/admin/units', label: 'Units' },
+    { href: '/admin/lessons', label: 'Lessons' },
+    { href: '/admin/analytics', label: 'Analytics' },
+    { href: '/admin/users', label: 'Users' }
+  ];
+
   return (
     <div className="flex-1 flex flex-col">
       <header className="border-b-2 border-border px-4 py-3 flex items-center justify-between bg-bg-soft">
@@ -22,18 +30,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           ← App
         </Link>
       </header>
-      <nav className="flex border-b-2 border-border bg-white text-sm">
-        <Link href="/admin/worlds" className="flex-1 py-3 text-center font-bold">
-          Worlds
-        </Link>
-        <Link href="/admin/lessons" className="flex-1 py-3 text-center font-bold">
-          Lessons
-        </Link>
-        <Link href="/admin/users" className="flex-1 py-3 text-center font-bold">
-          Users
-        </Link>
+      <nav className="flex border-b-2 border-border bg-white text-xs overflow-x-auto">
+        {tabs.map((t) => (
+          <Link
+            key={t.href}
+            href={t.href}
+            className="flex-1 min-w-[72px] py-3 text-center font-bold whitespace-nowrap"
+          >
+            {t.label}
+          </Link>
+        ))}
       </nav>
-      <div className="flex-1 p-4 overflow-y-auto">{children}</div>
+      <div className="flex-1 p-4 overflow-y-auto pb-12">{children}</div>
     </div>
   );
 }

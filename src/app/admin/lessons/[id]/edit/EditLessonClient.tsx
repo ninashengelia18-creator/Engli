@@ -2,8 +2,15 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { Trash2 } from 'lucide-react';
-import { addExercise, deleteExercise, updateLesson } from '@/app/admin/actions';
+import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
+import {
+  addExercise,
+  deleteExercise,
+  reorderExercise,
+  updateLesson
+} from '@/app/admin/actions';
+import { AdminField } from '@/components/admin/AdminField';
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 
 type LessonRow = {
   id: string;
@@ -25,9 +32,11 @@ type ExerciseRow = {
 const TYPE_OPTIONS = [
   { value: 'learn',     label: 'Learn (vocab card)' },
   { value: 'match',     label: 'Match (multiple choice)' },
+  { value: 'listen',    label: 'Listen (audio + choices)' },
   { value: 'speak',     label: 'Speak (pronounce phrase)' },
   { value: 'build',     label: 'Build (drag word bank)' },
-  { value: 'translate', label: 'Translate (typed answer)' }
+  { value: 'translate', label: 'Translate (typed answer)' },
+  { value: 'story',     label: 'Story (scenes + questions)' }
 ] as const;
 
 type ExerciseType = (typeof TYPE_OPTIONS)[number]['value'];
@@ -63,8 +72,14 @@ export default function EditLessonClient({
           {exercises.length === 0 && (
             <p className="text-sm text-ink-light">No exercises yet — add one below.</p>
           )}
-          {exercises.map((ex) => (
-            <ExerciseRowDisplay key={ex.id} ex={ex} lessonId={lesson.id} />
+          {exercises.map((ex, i) => (
+            <ExerciseRowDisplay
+              key={ex.id}
+              ex={ex}
+              lessonId={lesson.id}
+              canMoveUp={i > 0}
+              canMoveDown={i < exercises.length - 1}
+            />
           ))}
         </div>
       </section>
@@ -86,10 +101,12 @@ function LessonMetaForm({ lesson }: { lesson: LessonRow }) {
   const [xpReward, setXpReward] = useState(lesson.xp_reward);
   const [isPublished, setIsPublished] = useState(lesson.is_published);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function save(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     startTransition(async () => {
       const result = await updateLesson(lesson.id, {
         title_ka: titleKa,
@@ -98,7 +115,11 @@ function LessonMetaForm({ lesson }: { lesson: LessonRow }) {
         xp_reward: xpReward,
         is_published: isPublished
       });
-      if (result.ok) setSavedAt(new Date().toLocaleTimeString());
+      if ('error' in result && result.error) {
+        setError(result.error);
+        return;
+      }
+      setSavedAt(new Date().toLocaleTimeString());
     });
   }
 
@@ -108,38 +129,38 @@ function LessonMetaForm({ lesson }: { lesson: LessonRow }) {
         Lesson details
       </h2>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Title (KA)">
+        <AdminField label="Title (KA)">
           <input
             value={titleKa}
             onChange={(e) => setTitleKa(e.target.value)}
             className="w-full border-2 border-border rounded-lg px-3 py-2"
           />
-        </Field>
-        <Field label="Title (EN)">
+        </AdminField>
+        <AdminField label="Title (EN)">
           <input
             value={titleEn}
             onChange={(e) => setTitleEn(e.target.value)}
             className="w-full border-2 border-border rounded-lg px-3 py-2"
           />
-        </Field>
-        <Field label="Emoji">
+        </AdminField>
+        <AdminField label="Emoji">
           <input
             value={emoji}
             onChange={(e) => setEmoji(e.target.value)}
             maxLength={4}
             className="w-full border-2 border-border rounded-lg px-3 py-2 text-center text-2xl"
           />
-        </Field>
-        <Field label="XP">
+        </AdminField>
+        <AdminField label="XP">
           <input
             type="number"
             min={1}
-            max={100}
+            max={200}
             value={xpReward}
             onChange={(e) => setXpReward(Number(e.target.value))}
             className="w-full border-2 border-border rounded-lg px-3 py-2"
           />
-        </Field>
+        </AdminField>
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input
@@ -149,9 +170,10 @@ function LessonMetaForm({ lesson }: { lesson: LessonRow }) {
         />
         Published
       </label>
+      {error && <p className="text-danger text-xs">{error}</p>}
       <div className="flex items-center gap-3">
         <button type="submit" disabled={isPending} className="btn-primary">
-          {isPending ? 'Saving...' : 'Save'}
+          {isPending ? 'Saving…' : 'Save'}
         </button>
         {savedAt && <span className="text-xs text-ink-light">Saved {savedAt}</span>}
       </div>
@@ -159,8 +181,19 @@ function LessonMetaForm({ lesson }: { lesson: LessonRow }) {
   );
 }
 
-function ExerciseRowDisplay({ ex, lessonId }: { ex: ExerciseRow; lessonId: string }) {
+function ExerciseRowDisplay({
+  ex,
+  lessonId,
+  canMoveUp,
+  canMoveDown
+}: {
+  ex: ExerciseRow;
+  lessonId: string;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+}) {
   const [isPending, startTransition] = useTransition();
+  const [confirming, setConfirming] = useState(false);
   const summary = summarizeExercise(ex);
   return (
     <div className="card flex items-start justify-between gap-3 text-sm">
@@ -171,18 +204,54 @@ function ExerciseRowDisplay({ ex, lessonId }: { ex: ExerciseRow; lessonId: strin
         </div>
         <div className="text-sm break-words">{summary}</div>
       </div>
-      <button
-        disabled={isPending}
-        onClick={() => {
-          if (!confirm('Delete this exercise?')) return;
-          startTransition(() => {
-            deleteExercise(ex.id, lessonId);
-          });
-        }}
-        className="text-danger hover:text-danger-dark"
-      >
-        <Trash2 size={16} />
-      </button>
+      <div className="flex items-center gap-1 shrink-0">
+        <button
+          aria-label="Move up"
+          disabled={!canMoveUp || isPending}
+          onClick={() =>
+            startTransition(() => {
+              void reorderExercise(ex.id, lessonId, 'up');
+            })
+          }
+          className="p-1 text-ink-light hover:text-ink disabled:opacity-30"
+        >
+          <ArrowUp size={16} />
+        </button>
+        <button
+          aria-label="Move down"
+          disabled={!canMoveDown || isPending}
+          onClick={() =>
+            startTransition(() => {
+              void reorderExercise(ex.id, lessonId, 'down');
+            })
+          }
+          className="p-1 text-ink-light hover:text-ink disabled:opacity-30"
+        >
+          <ArrowDown size={16} />
+        </button>
+        <button
+          aria-label="Delete"
+          disabled={isPending}
+          onClick={() => setConfirming(true)}
+          className="p-1 text-danger hover:text-danger-dark"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+      {confirming && (
+        <ConfirmDialog
+          title="Delete this exercise?"
+          body="This cannot be undone."
+          confirmLabel="Delete"
+          onConfirm={() => {
+            setConfirming(false);
+            startTransition(() => {
+              void deleteExercise(ex.id, lessonId);
+            });
+          }}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
     </div>
   );
 }
@@ -193,6 +262,7 @@ function summarizeExercise(ex: ExerciseRow): string {
     case 'learn':
       return `${d.emoji ?? ''} ${d.en ?? ''} → ${d.ka ?? ''}`;
     case 'match':
+    case 'listen':
       return `${d.prompt_ka ?? ''} (correct: ${d.correct ?? ''})`;
     case 'speak':
       return `Say: ${d.target ?? ''} (${d.ka ?? ''})`;
@@ -200,6 +270,10 @@ function summarizeExercise(ex: ExerciseRow): string {
       return `Build: ${Array.isArray(d.target) ? (d.target as string[]).join(' ') : ''}`;
     case 'translate':
       return `${d.source_en ?? ''} → ${d.target_ka ?? ''}`;
+    case 'story': {
+      const scenes = Array.isArray(d.scenes) ? (d.scenes as { en?: string }[]) : [];
+      return `Story (${scenes.length} scenes): ${scenes[0]?.en ?? ''}…`;
+    }
     default:
       return JSON.stringify(d).slice(0, 80);
   }
@@ -225,12 +299,13 @@ function AddExerciseForm({ lessonId }: { lessonId: string }) {
 
   return (
     <div className="card space-y-3">
-      <Field label="Type">
+      <AdminField label="Type">
         <select
           value={type}
           onChange={(e) => {
             setType(e.target.value as ExerciseType);
             setResetKey((k) => k + 1);
+            setError(null);
           }}
           className="w-full border-2 border-border rounded-lg px-3 py-2"
         >
@@ -240,15 +315,17 @@ function AddExerciseForm({ lessonId }: { lessonId: string }) {
             </option>
           ))}
         </select>
-      </Field>
+      </AdminField>
 
       {type === 'learn' && <LearnFields key={resetKey} onSubmit={handleSubmit} disabled={isPending} />}
       {type === 'match' && <MatchFields key={resetKey} onSubmit={handleSubmit} disabled={isPending} />}
+      {type === 'listen' && <ListenFields key={resetKey} onSubmit={handleSubmit} disabled={isPending} />}
       {type === 'speak' && <SpeakFields key={resetKey} onSubmit={handleSubmit} disabled={isPending} />}
       {type === 'build' && <BuildFields key={resetKey} onSubmit={handleSubmit} disabled={isPending} />}
       {type === 'translate' && (
         <TranslateFields key={resetKey} onSubmit={handleSubmit} disabled={isPending} />
       )}
+      {type === 'story' && <StoryFields key={resetKey} onSubmit={handleSubmit} disabled={isPending} />}
 
       {error && <p className="text-danger text-xs">{error}</p>}
     </div>
@@ -296,9 +373,21 @@ function LearnFields({ onSubmit, disabled }: SubFormProps) {
 }
 
 function MatchFields({ onSubmit, disabled }: SubFormProps) {
+  return <MatchOrListenFields kind="match" onSubmit={onSubmit} disabled={disabled} />;
+}
+function ListenFields({ onSubmit, disabled }: SubFormProps) {
+  return <MatchOrListenFields kind="listen" onSubmit={onSubmit} disabled={disabled} />;
+}
+
+function MatchOrListenFields({
+  kind,
+  onSubmit,
+  disabled
+}: SubFormProps & { kind: 'match' | 'listen' }) {
   const [promptKa, setPromptKa] = useState('');
   const [promptEn, setPromptEn] = useState('');
   const [correct, setCorrect] = useState('');
+  const [audioUrl, setAudioUrl] = useState('');
   const [choices, setChoices] = useState([
     { en: '', ka: '', emoji: '' },
     { en: '', ka: '', emoji: '' },
@@ -313,6 +402,7 @@ function MatchFields({ onSubmit, disabled }: SubFormProps) {
           prompt_en: promptEn,
           prompt_ka: promptKa,
           correct,
+          audio_url: kind === 'listen' ? audioUrl : undefined,
           choices: choices.filter((c) => c.en.trim())
         })
       }
@@ -330,6 +420,14 @@ function MatchFields({ onSubmit, disabled }: SubFormProps) {
         onChange={(e) => setPromptEn(e.target.value)}
         className="w-full border-2 border-border rounded-lg px-3 py-2"
       />
+      {kind === 'listen' && (
+        <input
+          placeholder="Audio URL (optional — TTS used if blank)"
+          value={audioUrl}
+          onChange={(e) => setAudioUrl(e.target.value)}
+          className="w-full border-2 border-border rounded-lg px-3 py-2 text-xs font-mono"
+        />
+      )}
       <input
         required
         placeholder="Correct answer (must match a choice's English exactly)"
@@ -338,7 +436,7 @@ function MatchFields({ onSubmit, disabled }: SubFormProps) {
         className="w-full border-2 border-border rounded-lg px-3 py-2"
       />
       <div className="space-y-2">
-        <div className="text-xs font-bold uppercase text-ink-light">Choices (4)</div>
+        <div className="text-xs font-bold uppercase text-ink-light">Choices (up to 4)</div>
         {choices.map((c, i) => (
           <div key={i} className="grid grid-cols-[60px_1fr_1fr] gap-2">
             <input
@@ -421,12 +519,9 @@ function BuildFields({ onSubmit, disabled }: SubFormProps) {
       onSubmit={() => {
         const targetWords = target.split(/\s+/).filter(Boolean);
         const extraWords = extras.split(/\s+/).filter(Boolean);
-        const bank = [...targetWords, ...extraWords].sort(() => Math.random() - 0.5);
         onSubmit({
           target: targetWords,
-          bank,
-          prompt_en: `Build: ${target}`,
-          prompt_ka: `ააგე: ${ka}`,
+          bank: [...targetWords, ...extraWords],
           ka
         });
       }}
@@ -463,13 +558,10 @@ function TranslateFields({ onSubmit, disabled }: SubFormProps) {
     <SubForm
       disabled={disabled}
       onSubmit={() => {
-        const accept = [
-          targetKa,
-          ...acceptExtra
-            .split('\n')
-            .map((s) => s.trim())
-            .filter(Boolean)
-        ];
+        const accept = acceptExtra
+          .split('\n')
+          .map((s) => s.trim())
+          .filter(Boolean);
         onSubmit({ source_en: sourceEn, target_ka: targetKa, accept });
       }}
     >
@@ -498,6 +590,108 @@ function TranslateFields({ onSubmit, disabled }: SubFormProps) {
   );
 }
 
+function StoryFields({ onSubmit, disabled }: SubFormProps) {
+  const [scenes, setScenes] = useState([
+    { image: '📖', en: '', ka: '' },
+    { image: '🌟', en: '', ka: '' }
+  ]);
+  const [question, setQuestion] = useState({ en: '', ka: '', correct: '', choicesText: '' });
+
+  function addScene() {
+    setScenes((s) => [...s, { image: '✨', en: '', ka: '' }]);
+  }
+  function setScene(i: number, patch: Partial<{ image: string; en: string; ka: string }>) {
+    setScenes((s) => s.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
+  }
+  function removeScene(i: number) {
+    setScenes((s) => s.filter((_, idx) => idx !== i));
+  }
+
+  return (
+    <SubForm
+      disabled={disabled}
+      onSubmit={() => {
+        const choices = question.choicesText
+          .split('\n')
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const questions = question.en && question.correct ? [{ ...question, choices }] : [];
+        onSubmit({ scenes, questions });
+      }}
+    >
+      <div className="space-y-2">
+        <div className="text-xs font-bold uppercase text-ink-light">Scenes</div>
+        {scenes.map((sc, i) => (
+          <div key={i} className="grid grid-cols-[60px_1fr_1fr_30px] gap-2 items-center">
+            <input
+              value={sc.image}
+              onChange={(e) => setScene(i, { image: e.target.value })}
+              className="border-2 border-border rounded-lg px-2 py-2 text-center text-xl"
+            />
+            <input
+              placeholder="English line"
+              value={sc.en}
+              onChange={(e) => setScene(i, { en: e.target.value })}
+              className="border-2 border-border rounded-lg px-3 py-2"
+            />
+            <input
+              placeholder="Georgian line"
+              value={sc.ka}
+              onChange={(e) => setScene(i, { ka: e.target.value })}
+              className="border-2 border-border rounded-lg px-3 py-2"
+            />
+            <button
+              type="button"
+              onClick={() => removeScene(i)}
+              className="text-danger text-lg"
+              aria-label="Remove scene"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addScene}
+          className="text-xs font-bold text-secondary"
+        >
+          + Add scene
+        </button>
+      </div>
+      <div className="space-y-2">
+        <div className="text-xs font-bold uppercase text-ink-light">
+          Comprehension question (optional)
+        </div>
+        <input
+          placeholder="Question (English)"
+          value={question.en}
+          onChange={(e) => setQuestion({ ...question, en: e.target.value })}
+          className="w-full border-2 border-border rounded-lg px-3 py-2"
+        />
+        <input
+          placeholder="Question (Georgian)"
+          value={question.ka}
+          onChange={(e) => setQuestion({ ...question, ka: e.target.value })}
+          className="w-full border-2 border-border rounded-lg px-3 py-2"
+        />
+        <input
+          placeholder="Correct answer"
+          value={question.correct}
+          onChange={(e) => setQuestion({ ...question, correct: e.target.value })}
+          className="w-full border-2 border-border rounded-lg px-3 py-2"
+        />
+        <textarea
+          placeholder="Choices (one per line, include the correct one)"
+          value={question.choicesText}
+          onChange={(e) => setQuestion({ ...question, choicesText: e.target.value })}
+          rows={3}
+          className="w-full border-2 border-border rounded-lg px-3 py-2 font-mono text-xs"
+        />
+      </div>
+    </SubForm>
+  );
+}
+
 function SubForm({
   onSubmit,
   disabled,
@@ -517,19 +711,8 @@ function SubForm({
     >
       {children}
       <button type="submit" disabled={disabled} className="btn-primary">
-        {disabled ? 'Adding...' : 'Add exercise'}
+        {disabled ? 'Adding…' : 'Add exercise'}
       </button>
     </form>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-xs font-bold text-ink-light mb-1 uppercase tracking-wide">
-        {label}
-      </label>
-      {children}
-    </div>
   );
 }
