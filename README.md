@@ -27,10 +27,16 @@ npm install
 
 ### 2. Set up Supabase
 1. Create new project at [supabase.com](https://supabase.com)
-2. SQL Editor → run `supabase/migrations/20260427_initial_schema.sql`
-3. Then run `supabase/migrations/20260427_seed_data.sql`
-4. Authentication → Providers → enable Google (and Apple if you want)
-5. Copy URL + anon key + service role key into `.env.local`
+2. SQL Editor → run **all** migrations in `supabase/migrations/` in filename
+   order, or run `npm run migrate` after setting `SUPABASE_DB_URL`.
+3. Authentication → Providers → enable Google (and Apple if you want)
+4. Copy URL + anon key + service role key into `.env.local`
+
+> The `20260515_security_hardening.sql` migration replaces `award_xp` and
+> `decrement_hearts` with `auth.uid()`-bound versions, adds a server-side
+> `complete_lesson` RPC, and creates `processed_stripe_events` for webhook
+> idempotency. Run it on any pre-existing project before deploying this
+> revision — the client no longer passes `p_user_id` to those RPCs.
 
 ### 3. Set up Stripe
 1. [Stripe Dashboard](https://dashboard.stripe.com) → Products → create:

@@ -38,6 +38,22 @@ export default function ChatPage() {
       setLoading(false);
       return;
     }
+    if (res.status === 429) {
+      setMessages([
+        ...newMessages,
+        { role: 'assistant', content: 'ცოტა მოიცადე და კიდევ სცადე 🦊 (Slow down, try again in a moment.)' }
+      ]);
+      setLoading(false);
+      return;
+    }
+    if (!res.ok) {
+      setMessages([
+        ...newMessages,
+        { role: 'assistant', content: 'უი! რაღაც შეცდომა მოხდა. (Oops! Something went wrong.)' }
+      ]);
+      setLoading(false);
+      return;
+    }
 
     const { reply } = await res.json();
     setMessages([...newMessages, { role: 'assistant', content: reply }]);

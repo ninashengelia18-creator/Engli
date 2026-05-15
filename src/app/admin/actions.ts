@@ -2,20 +2,12 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'nina@learneazy.org,nina@yournexttutor.com')
-  .split(',')
-  .map((s) => s.trim().toLowerCase());
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getAdminUser } from '@/lib/admin';
 
 async function assertAdmin() {
-  const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-  if (!user?.email || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-    redirect('/learn');
-  }
+  const user = await getAdminUser();
+  if (!user) redirect('/learn');
 }
 
 export async function createLesson(input: {

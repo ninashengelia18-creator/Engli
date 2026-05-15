@@ -36,7 +36,7 @@ export default function LessonPlayer({ lessonId, lessonTitle, exercises, xpRewar
     setFeedback(correct ? 'correct' : 'wrong');
     if (!correct) setMistakes((m) => m + 1);
 
-    // Log exercise attempt (best-effort)
+    // Log exercise attempt (best-effort). RLS scopes user_id to auth.uid().
     const {
       data: { user }
     } = await supabase.auth.getUser();
@@ -48,7 +48,7 @@ export default function LessonPlayer({ lessonId, lessonTitle, exercises, xpRewar
       });
       if (!correct) {
         try {
-          await supabase.rpc('decrement_hearts', { p_user_id: user.id });
+          await supabase.rpc('decrement_hearts');
         } catch {
           // best-effort; ignore if RPC fails
         }
@@ -59,26 +59,21 @@ export default function LessonPlayer({ lessonId, lessonTitle, exercises, xpRewar
   async function handleNext() {
     setFeedback(null);
     if (idx + 1 >= exercises.length) {
-      // Lesson complete
-      const {
-        data: { user }
-      } = await supabase.auth.getUser();
-      if (user) {
-        const score = Math.max(0, 100 - mistakes * 10);
-        await supabase.from('lesson_progress').upsert(
-          {
-            user_id: user.id,
-            lesson_id: lessonId,
-            status: 'completed',
-            best_score: score,
-            attempts: 1,
-            total_time_seconds: Math.floor((Date.now() - startedAt) / 1000),
-            first_completed_at: new Date().toISOString(),
-            last_attempted_at: new Date().toISOString()
-          },
-          { onConflict: 'user_id,lesson_id' }
-        );
-        await supabase.rpc('award_xp', { p_user_id: user.id, p_xp: xpReward });
+      // Server-side: validates lesson, writes progress, awards XP atomically.
+      // Client-side XP/mistake counts are advisory only — the server uses the
+      // lesson's canonical xp_reward.
+      try {
+        await fetch('/api/lesson/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lessonId,
+            mistakes,
+            seconds: Math.floor((Date.now() - startedAt) / 1000)
+          })
+        });
+      } catch {
+        // best-effort; the user still sees the completion screen
       }
       setDone(true);
     } else {

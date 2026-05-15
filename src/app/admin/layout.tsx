@@ -1,10 +1,7 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'nina@learneazy.org,nina@yournexttutor.com')
-  .split(',')
-  .map((s) => s.trim().toLowerCase());
+import { createClient } from '@/lib/supabase/server';
+import { isAdminEmail } from '@/lib/admin';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -13,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   } = await supabase.auth.getUser();
 
   if (!user) redirect('/sign-in?next=/admin');
-  if (!user.email || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+  if (!isAdminEmail(user.email)) {
     redirect('/learn');
   }
 
