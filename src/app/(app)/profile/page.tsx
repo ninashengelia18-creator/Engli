@@ -30,6 +30,24 @@ export default async function ProfilePage() {
     .eq('user_id', user.id)
     .single();
 
+  // Recent achievements for the small "trophy shelf" on the profile card.
+  const { data: earnedAch } = await supabase
+    .from('user_achievements')
+    .select('achievement_id, earned_at, achievements(slug, title_ka, emoji)')
+    .eq('user_id', user.id)
+    .order('earned_at', { ascending: false })
+    .limit(6);
+  type AchRow = {
+    achievement_id: string;
+    earned_at: string;
+    achievements: { slug: string; title_ka: string; emoji: string | null } | null;
+  };
+  const recentAch = (earnedAch ?? []) as unknown as AchRow[];
+
+  const { count: totalAchCount } = await supabase
+    .from('achievements')
+    .select('id', { count: 'exact', head: true });
+
   const isPremium =
     subscription?.tier !== 'free' &&
     (subscription?.status === 'active' || subscription?.status === 'trialing');
@@ -97,6 +115,36 @@ export default async function ProfilePage() {
           )}
         </div>
       </div>
+
+      <Link
+        href="/achievements"
+        className="card mb-3 block active:translate-y-[1px] transition-transform duration-75"
+        aria-label="მიღწევები"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="font-bold">
+            <span aria-hidden="true">🏅</span> მიღწევები
+          </div>
+          <div className="text-xs text-ink-light">
+            {recentAch.length} / {totalAchCount ?? 0} <span className="text-ink-lighter">→</span>
+          </div>
+        </div>
+        <div className="flex gap-2" aria-hidden="true">
+          {recentAch.length === 0 ? (
+            <p className="text-xs text-ink-light">ჯერ მიღწევები არ გაქვს — დაიწყე გაკვეთილი</p>
+          ) : (
+            recentAch.map((a) => (
+              <span
+                key={a.achievement_id}
+                className="text-2xl"
+                title={a.achievements?.title_ka ?? ''}
+              >
+                {a.achievements?.emoji ?? '🏅'}
+              </span>
+            ))
+          )}
+        </div>
+      </Link>
 
       <Link
         href="/parent-dashboard"
