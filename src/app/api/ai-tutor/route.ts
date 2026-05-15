@@ -27,8 +27,12 @@ function sanitizeMessages(input: unknown): ChatMessage[] | null {
   return out;
 }
 
+function isValidUuid(v: unknown): v is string {
+  return typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+}
+
 export async function POST(req: Request) {
-  let payload: { messages?: unknown; scenario?: unknown };
+  let payload: { messages?: unknown; scenario?: unknown; conversationId?: unknown };
   try {
     payload = await req.json();
   } catch {
@@ -41,6 +45,7 @@ export async function POST(req: Request) {
   }
   const scenario =
     typeof payload.scenario === 'string' ? payload.scenario.slice(0, 200) : undefined;
+  const conversationId = isValidUuid(payload.conversationId) ? payload.conversationId : null;
 
   const supabase = createClient();
   const {
@@ -48,8 +53,9 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Per-user rate limit: 20 messages per minute. Protects Anthropic spend.
-  const rl = checkRateLimit(`ai-tutor:${user.id}`, 20, 60_000);
+  // Per-user rate limit: 20 messages per minute. Backed by Upstash when
+  // UPSTASH_REDIS_REST_URL/TOKEN are set; otherwise in-memory per process.
+  const rl = await checkRateLimit(`ai-tutor:${user.id}`, 20, 60_000);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Rate limit exceeded', retryAfter: rl.retryAfterSeconds },
@@ -94,6 +100,7 @@ Rules:
 - Current scenario: ${scenario || 'casual conversation'}
 - Keep responses to 2-3 short sentences`;
 
+  let reply: string;
   try {
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -101,14 +108,40 @@ Rules:
       system: systemPrompt,
       messages
     });
-
-    const text = response.content
+    reply = response.content
       .filter((c): c is Anthropic.TextBlock => c.type === 'text')
       .map((c) => c.text)
       .join('\n');
-
-    return NextResponse.json({ reply: text });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
+
+  // Persist the conversation. Best-effort: a DB write failure must not break
+  // the tutor reply for the child.
+  const fullTranscript = [...messages, { role: 'assistant' as const, content: reply }];
+  let resolvedId = conversationId;
+  try {
+    if (conversationId) {
+      await admin
+        .from('ai_conversations')
+        .update({ messages: fullTranscript, scenario: scenario ?? null })
+        .eq('id', conversationId)
+        .eq('user_id', user.id);
+    } else {
+      const { data: inserted } = await admin
+        .from('ai_conversations')
+        .insert({
+          user_id: user.id,
+          scenario: scenario ?? null,
+          messages: fullTranscript
+        })
+        .select('id')
+        .single();
+      resolvedId = inserted?.id ?? null;
+    }
+  } catch {
+    // swallow — chat must still respond
+  }
+
+  return NextResponse.json({ reply, conversationId: resolvedId });
 }

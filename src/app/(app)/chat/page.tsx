@@ -14,6 +14,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [needsUpgrade, setNeedsUpgrade] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export default function ChatPage() {
     const res = await fetch('/api/ai-tutor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: newMessages })
+      body: JSON.stringify({ messages: newMessages, conversationId })
     });
 
     if (res.status === 402) {
@@ -55,7 +56,8 @@ export default function ChatPage() {
       return;
     }
 
-    const { reply } = await res.json();
+    const { reply, conversationId: newId } = await res.json();
+    if (newId && newId !== conversationId) setConversationId(newId);
     setMessages([...newMessages, { role: 'assistant', content: reply }]);
     setLoading(false);
     // Speak only English part
