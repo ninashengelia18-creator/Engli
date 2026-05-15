@@ -25,7 +25,19 @@ export default function Home() {
         <Feature emoji="🤖" label="AI მასწავლებელი" />
       </div>
 
-      <div className="mt-12 text-xs text-ink-lighter">Made with 💚 in Georgia</div>
+      <nav
+        aria-label="საინფორმაციო გვერდები"
+        className="mt-10 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-ink-light max-w-xs"
+      >
+        <Link href="/parent-guide" className="underline">მშობელს</Link>
+        <Link href="/safety" className="underline">უსაფრთხოება</Link>
+        <Link href="/about-ai" className="underline">AI-ის შესახებ</Link>
+        <Link href="/help" className="underline">დახმარება</Link>
+        <Link href="/privacy" className="underline">კონფიდენციალურობა</Link>
+        <Link href="/terms" className="underline">პირობები</Link>
+      </nav>
+
+      <div className="mt-6 text-xs text-ink-lighter">Made with 💚 in Georgia</div>
     </main>
   );
 }

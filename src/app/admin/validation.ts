@@ -131,11 +131,27 @@ export function validateExercisePayload(
   }
 }
 
+// Soft per-field cap so a copy/paste accident can't drop a 1MB blob into
+// the lesson JSON. Stays generous enough for paragraph-level translate
+// exercises.
+const MAX_FIELD_CHARS = 500;
+
+function tooLong(value: string, label: string): Err | null {
+  if (value.length > MAX_FIELD_CHARS) {
+    return { ok: false, error: `${label} is too long (max ${MAX_FIELD_CHARS} chars)` };
+  }
+  return null;
+}
+
 function validateLearn(d: Record<string, unknown>): NormalizedOk | Err {
   const en = asString(d.en);
   const ka = asString(d.ka);
   if (!en) return { ok: false, error: 'English word is required' };
   if (!ka) return { ok: false, error: 'Georgian word is required' };
+  const longEn = tooLong(en, 'English word');
+  if (longEn) return longEn;
+  const longKa = tooLong(ka, 'Georgian word');
+  if (longKa) return longKa;
   return {
     ok: true,
     normalized: {
@@ -152,6 +168,11 @@ function validateMatch(d: Record<string, unknown>): NormalizedOk | Err {
   if (!prompt_ka) return { ok: false, error: 'Georgian prompt is required' };
   const correct = asString(d.correct);
   if (!correct) return { ok: false, error: 'Correct answer is required' };
+  const longPrompt = tooLong(prompt_ka, 'Georgian prompt');
+  if (longPrompt) return longPrompt;
+  const longCorrect = tooLong(correct, 'Correct answer');
+  if (longCorrect) return longCorrect;
+
   const rawChoices = Array.isArray(d.choices) ? d.choices : [];
   const choices = rawChoices
     .map((c) => c as Record<string, unknown>)
@@ -162,8 +183,25 @@ function validateMatch(d: Record<string, unknown>): NormalizedOk | Err {
       emoji: asString(c.emoji) || ''
     }));
   if (choices.length < 2) return { ok: false, error: 'Match needs at least 2 choices' };
+  if (choices.length > 6) return { ok: false, error: 'Match has too many choices (max 6)' };
+
+  // Catch the classic content-entry bug: two choices with the same English
+  // text. The UI tap-targets get confusing and the correct-answer match is
+  // ambiguous.
+  const seen = new Set<string>();
+  for (const c of choices) {
+    const key = c.en.toLowerCase();
+    if (seen.has(key)) {
+      return { ok: false, error: `Duplicate choice "${c.en}" — each option must be unique` };
+    }
+    seen.add(key);
+  }
+
   if (!choices.some((c) => c.en === correct)) {
-    return { ok: false, error: `Correct answer "${correct}" must exactly match one of the choices' English text` };
+    return {
+      ok: false,
+      error: `Correct answer "${correct}" must exactly match one of the choices' English text`
+    };
   }
   return {
     ok: true,
@@ -209,8 +247,16 @@ function validateBuild(d: Record<string, unknown>): NormalizedOk | Err {
     ? (d.target as unknown[]).map(asString).filter(Boolean)
     : asString(d.target).split(/\s+/).filter(Boolean);
   if (rawTarget.length < 2) return { ok: false, error: 'Target sentence must have at least 2 words' };
+  if (rawTarget.length > 12) {
+    return { ok: false, error: 'Target sentence is too long (max 12 words)' };
+  }
+  for (const w of rawTarget) {
+    if (w.length > 40) return { ok: false, error: `Word "${w}" is too long (max 40 chars)` };
+  }
   const ka = asString(d.ka);
   if (!ka) return { ok: false, error: 'Georgian translation is required' };
+  const longKa = tooLong(ka, 'Georgian translation');
+  if (longKa) return longKa;
   const extras = Array.isArray(d.bank)
     ? (d.bank as unknown[]).map(asString).filter(Boolean)
     : [];
@@ -256,6 +302,8 @@ function validateStory(d: Record<string, unknown>): NormalizedOk | Err {
       ka: asString(s.ka)
     }));
   if (scenes.length === 0) return { ok: false, error: 'Story needs at least one scene' };
+  if (scenes.length > 10) return { ok: false, error: 'Story has too many scenes (max 10)' };
+
   const rawQs = Array.isArray(d.questions) ? d.questions : [];
   const questions = rawQs
     .map((q) => q as Record<string, unknown>)
@@ -266,8 +314,23 @@ function validateStory(d: Record<string, unknown>): NormalizedOk | Err {
         en: asString(q.en),
         ka: asString(q.ka),
         correct: asString(q.correct),
-        choices: choicesRaw.map(asString).filter(Boolean)
+        choices: Array.from(new Set(choicesRaw.map(asString).filter(Boolean)))
       };
     });
+
+  // Each question's correct answer must appear in its choices, otherwise
+  // the player can never pass.
+  for (const [i, q] of questions.entries()) {
+    if (q.choices.length < 2) {
+      return { ok: false, error: `Question ${i + 1} needs at least 2 choices` };
+    }
+    if (!q.choices.includes(q.correct)) {
+      return {
+        ok: false,
+        error: `Question ${i + 1}: correct answer "${q.correct}" is missing from its choices`
+      };
+    }
+  }
+
   return { ok: true, normalized: { scenes, questions } };
 }
