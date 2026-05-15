@@ -16,7 +16,11 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t-2 border-border flex">
+    <nav
+      aria-label="ნავიგაცია"
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t-2 border-border flex"
+      style={{ paddingBottom: 'var(--safe-bottom)' }}
+    >
       {TABS.map((tab) => {
         const Icon = tab.icon;
         const active = pathname?.startsWith(tab.href);
@@ -24,11 +28,12 @@ export default function BottomNav() {
           <Link
             key={tab.href}
             href={tab.href}
-            className={`flex-1 flex flex-col items-center py-2.5 ${
-              active ? 'text-primary' : 'text-ink-light'
+            aria-current={active ? 'page' : undefined}
+            className={`flex-1 flex flex-col items-center py-2.5 transition-colors ${
+              active ? 'text-primary' : 'text-ink-light hover:text-ink'
             }`}
           >
-            <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+            <Icon size={22} strokeWidth={active ? 2.75 : 2} aria-hidden="true" />
             <span className="text-[11px] font-bold mt-0.5">{tab.label}</span>
           </Link>
         );

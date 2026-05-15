@@ -35,13 +35,14 @@ export default function SpeakExercise({
 
   return (
     <div className="flex flex-col h-full">
-      <h2 className="text-xl font-extrabold text-center mb-2">{data.prompt_ka}</h2>
+      <h2 className="text-xl font-extrabold text-center mb-1">{data.prompt_ka}</h2>
       <p className="text-sm text-ink-light text-center mb-6">{data.prompt_en}</p>
 
-      <div className="card flex flex-col items-center p-6 mb-6">
+      <div className="card flex flex-col items-center p-6 mb-6 bg-gradient-to-b from-white to-bg-soft">
         <button
           onClick={() => speak(data.target)}
-          className="bg-secondary text-white w-14 h-14 rounded-full flex items-center justify-center mb-4"
+          aria-label="მოუსმინე"
+          className="bg-secondary text-white w-14 h-14 rounded-full flex items-center justify-center mb-4 shadow-[0_4px_0_0_#1899D6] active:translate-y-[2px] active:shadow-[0_2px_0_0_#1899D6] transition-all duration-75"
         >
           <Volume2 size={24} />
         </button>
@@ -53,13 +54,14 @@ export default function SpeakExercise({
         <button
           onClick={handleMic}
           disabled={!!feedback}
-          className={`w-24 h-24 rounded-full flex items-center justify-center text-white shadow-[0_6px_0_0_#C82323] active:translate-y-[3px] ${
+          aria-label={listening ? 'ვუსმენ...' : 'დაჭირე და თქვი'}
+          className={`w-24 h-24 rounded-full flex items-center justify-center text-white shadow-[0_6px_0_0_#C82323] active:translate-y-[3px] active:shadow-[0_3px_0_0_#C82323] transition-all duration-75 ${
             listening ? 'bg-primary animate-pulse' : 'bg-danger'
           }`}
         >
           <Mic size={36} />
         </button>
-        <p className="text-sm font-bold text-ink-light min-h-[20px]">
+        <p className="text-sm font-bold text-ink-light min-h-[20px]" aria-live="polite">
           {listening ? 'ვუსმენ...' : heard ? `"${heard}"` : 'დაჭირე და თქვი'}
         </p>
       </div>

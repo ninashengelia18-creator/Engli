@@ -34,33 +34,35 @@ export default function ListenExercise({
       <div className="flex justify-center mb-6">
         <button
           onClick={() => speak(data.correct)}
-          className="bg-secondary text-white w-20 h-20 rounded-full flex items-center justify-center shadow-[0_4px_0_0_#1899D6] active:translate-y-[2px] active:shadow-[0_2px_0_0_#1899D6]"
+          aria-label="მოუსმინე ხელახლა"
+          className="bg-secondary text-white w-20 h-20 rounded-full flex items-center justify-center shadow-[0_4px_0_0_#1899D6] active:translate-y-[2px] active:shadow-[0_2px_0_0_#1899D6] transition-all duration-75"
         >
           <Volume2 size={32} />
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div role="radiogroup" aria-label={data.prompt_ka} className="grid grid-cols-2 gap-3 mb-4">
         {data.choices.map((c) => {
           const isSelected = selected === c.en;
           const showCorrect = feedback && c.en === data.correct;
           const showWrong = feedback === 'wrong' && isSelected;
+          const tileClass = showCorrect
+            ? 'tile tile-correct'
+            : showWrong
+              ? 'tile tile-wrong'
+              : isSelected
+                ? 'tile tile-selected'
+                : 'tile';
           return (
             <button
               key={c.en}
+              role="radio"
+              aria-checked={isSelected}
               disabled={!!feedback}
               onClick={() => setSelected(c.en)}
-              className={`p-4 rounded-2xl border-2 border-b-4 min-h-[90px] flex flex-col items-center justify-center gap-1 ${
-                showCorrect
-                  ? 'bg-green-100 border-primary text-primary-dark'
-                  : showWrong
-                    ? 'bg-red-100 border-danger text-danger'
-                    : isSelected
-                      ? 'bg-blue-50 border-secondary text-secondary'
-                      : 'bg-white border-border'
-              }`}
+              className={`${tileClass} min-h-[90px] flex flex-col items-center justify-center gap-1`}
             >
-              {c.emoji && <div className="text-2xl">{c.emoji}</div>}
+              {c.emoji && <div className="text-2xl" aria-hidden="true">{c.emoji}</div>}
               <div className="font-bold">{c.en}</div>
               <div className="text-xs text-ink-light">{c.ka}</div>
             </button>

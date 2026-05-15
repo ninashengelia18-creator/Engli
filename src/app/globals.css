@@ -8,29 +8,117 @@
   --secondary: #1cb0f6;
   --accent: #ffc800;
   --danger: #ff4b4b;
+  --purple: #ce82ff;
+
+  /* Soft tints used across feedback bars */
+  --tint-correct: #ddf4d3;
+  --tint-correct-ink: #2f7a01;
+  --tint-wrong: #ffd9d9;
+  --tint-wrong-ink: #b00020;
+
+  /* iOS safe areas (no-op on web) */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 
 html,
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
+
+/* Respect reduced-motion: kill non-essential animations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Visible focus ring for keyboard users only. */
+:focus-visible {
+  outline: 3px solid #1cb0f6;
+  outline-offset: 2px;
+  border-radius: 12px;
 }
 
 @layer components {
+  /* === Buttons === */
   .btn-primary {
-    @apply bg-primary text-white font-extrabold uppercase tracking-wide px-6 py-4 rounded-2xl shadow-[0_4px_0_0_#58A700] active:translate-y-[2px] active:shadow-[0_2px_0_0_#58A700] disabled:bg-border disabled:shadow-[0_4px_0_0_#BFBFBF] disabled:text-ink-light disabled:cursor-not-allowed transition-all duration-75;
+    @apply bg-primary text-white font-extrabold uppercase tracking-wide px-6 py-4 rounded-2xl
+      shadow-[0_4px_0_0_#58A700] active:translate-y-[2px] active:shadow-[0_2px_0_0_#58A700]
+      disabled:bg-border disabled:shadow-[0_4px_0_0_#BFBFBF] disabled:text-ink-light
+      disabled:cursor-not-allowed transition-all duration-75 select-none;
   }
   .btn-secondary {
-    @apply bg-white text-ink font-extrabold border-2 border-border border-b-4 px-6 py-4 rounded-2xl active:translate-y-[2px] active:border-b-2 transition-all duration-75;
+    @apply bg-white text-ink font-extrabold border-2 border-border border-b-4 px-6 py-4 rounded-2xl
+      active:translate-y-[2px] active:border-b-2 transition-all duration-75 select-none;
   }
   .btn-danger {
-    @apply bg-danger text-white font-extrabold px-6 py-4 rounded-2xl shadow-[0_4px_0_0_#C82323] active:translate-y-[2px] active:shadow-[0_2px_0_0_#C82323] transition-all duration-75;
+    @apply bg-danger text-white font-extrabold px-6 py-4 rounded-2xl
+      shadow-[0_4px_0_0_#C82323] active:translate-y-[2px] active:shadow-[0_2px_0_0_#C82323]
+      transition-all duration-75 select-none;
   }
+  .btn-accent {
+    @apply bg-accent text-ink font-extrabold uppercase tracking-wide px-6 py-4 rounded-2xl
+      shadow-[0_4px_0_0_#E0AE00] active:translate-y-[2px] active:shadow-[0_2px_0_0_#E0AE00]
+      transition-all duration-75 select-none;
+  }
+  .btn-ghost {
+    @apply text-ink-light font-bold px-3 py-2 rounded-xl active:bg-bg-soft transition-colors duration-75;
+  }
+
+  /* === Cards & surfaces === */
   .card {
     @apply bg-white border-2 border-border rounded-2xl p-4;
   }
+  .surface-soft {
+    @apply bg-bg-soft rounded-2xl;
+  }
+
+  /* === Pills / chips === */
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold;
+  }
+  .chip-primary {
+    @apply bg-green-50 text-primary-dark border border-primary/30;
+  }
+  .chip-accent {
+    @apply bg-yellow-50 text-[#9A7400] border border-accent/40;
+  }
+  .chip-danger {
+    @apply bg-red-50 text-danger border border-danger/30;
+  }
+
+  /* === Choice tile (used by match/listen) === */
+  .tile {
+    @apply rounded-2xl border-2 border-b-4 border-border bg-white p-4
+      transition-all duration-75 active:translate-y-[2px] active:border-b-2 select-none;
+  }
+  .tile-selected {
+    @apply border-secondary bg-blue-50 text-secondary;
+  }
+  .tile-correct {
+    @apply border-primary bg-green-100 text-primary-dark;
+  }
+  .tile-wrong {
+    @apply border-danger bg-red-100 text-danger;
+  }
+
+  /* === Lesson path nodes === */
   .lesson-node {
-    @apply w-20 h-20 rounded-full bg-primary shadow-[0_6px_0_0_#58A700] flex items-center justify-center text-4xl active:translate-y-[3px] active:shadow-[0_3px_0_0_#58A700] transition-all duration-75 cursor-pointer;
+    @apply w-20 h-20 rounded-full bg-primary shadow-[0_6px_0_0_#58A700]
+      flex items-center justify-center text-4xl
+      active:translate-y-[3px] active:shadow-[0_3px_0_0_#58A700]
+      transition-all duration-75 cursor-pointer select-none;
   }
   .lesson-node-locked {
     @apply bg-border shadow-[0_6px_0_0_#BFBFBF] cursor-not-allowed;
@@ -40,5 +128,47 @@ body {
   }
   .lesson-node-premium {
     @apply bg-purple shadow-[0_6px_0_0_#A560E8];
+  }
+  .lesson-node-current {
+    @apply ring-4 ring-secondary/60 ring-offset-2 ring-offset-white;
+  }
+
+  /* === Progress bar === */
+  .progress-track {
+    @apply h-3 bg-border rounded-full overflow-hidden;
+  }
+  .progress-fill {
+    @apply h-full bg-primary transition-[width] duration-500;
+  }
+
+  /* === Skeleton loader === */
+  .skeleton {
+    @apply bg-border/60 rounded-xl animate-pulse;
+  }
+
+  /* === Feedback panel (sticky bottom in lessons) === */
+  .feedback-bar {
+    @apply px-5 pt-4 pb-5 border-t-2;
+    padding-bottom: calc(1.25rem + var(--safe-bottom));
+  }
+  .feedback-bar-correct {
+    @apply border-primary/30 bg-[var(--tint-correct)] text-[var(--tint-correct-ink)];
+  }
+  .feedback-bar-wrong {
+    @apply border-danger/30 bg-[var(--tint-wrong)] text-[var(--tint-wrong-ink)];
+  }
+
+  /* === Inputs === */
+  .input {
+    @apply w-full border-2 border-border rounded-xl px-4 py-3 text-base
+      focus:outline-none focus:border-secondary;
+  }
+}
+
+/* Slightly larger tap targets on touch devices */
+@media (pointer: coarse) {
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
   }
 }

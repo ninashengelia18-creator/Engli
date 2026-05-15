@@ -18,12 +18,11 @@ export default async function LessonPage({ params }: { params: { id: string } })
 
   if (!lesson) redirect('/learn');
 
-  // Premium gating
-  const { data: subscription } = await supabase
-    .from('subscriptions')
-    .select('tier, status')
-    .eq('user_id', user.id)
-    .single();
+  const [{ data: subscription }, { data: profile }] = await Promise.all([
+    supabase.from('subscriptions').select('tier, status').eq('user_id', user.id).single(),
+    supabase.from('profiles').select('hearts').eq('id', user.id).single()
+  ]);
+
   const isPremium =
     subscription?.tier !== 'free' &&
     (subscription?.status === 'active' || subscription?.status === 'trialing');
@@ -35,9 +34,18 @@ export default async function LessonPage({ params }: { params: { id: string } })
     (a: { display_order: number }, b: { display_order: number }) => a.display_order - b.display_order
   );
 
+  const initialHearts = profile?.hearts ?? 5;
+
   return (
     <div className="fixed inset-0 bg-white max-w-md mx-auto flex flex-col z-50">
-      <LessonPlayer lessonId={lesson.id} lessonTitle={lesson.title_ka} exercises={exercises} xpReward={lesson.xp_reward} />
+      <LessonPlayer
+        lessonId={lesson.id}
+        lessonTitle={lesson.title_ka}
+        exercises={exercises}
+        xpReward={lesson.xp_reward}
+        initialHearts={initialHearts}
+        isPremium={!!isPremium}
+      />
     </div>
   );
 }
