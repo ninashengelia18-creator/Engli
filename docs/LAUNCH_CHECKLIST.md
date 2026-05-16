@@ -70,14 +70,21 @@ paying user signs up.
 
 Engli has one critical cron: hearts refill. Pick **one** mechanism:
 
-- **Vercel Cron** — add to `vercel.json`:
+- **Vercel Cron (Hobby-compatible default)** — the shipped `vercel.json`
+  runs the refill once a day at 04:00 UTC, which is the maximum
+  frequency Vercel Hobby allows:
   ```json
-  { "crons": [{ "path": "/api/cron/refill-hearts", "schedule": "0 * * * *" }] }
+  { "crons": [{ "path": "/api/cron/refill-hearts", "schedule": "0 4 * * *" }] }
   ```
   Vercel sends a `Authorization: Bearer <CRON_SECRET>` header automatically
   when the env var is set; the route already checks this.
-- **External pinger** (cron-job.org, GitHub Actions, etc.) hitting the
-  same URL with the `Authorization: Bearer $CRON_SECRET` header.
+- **Vercel Cron (Pro, hourly)** — on the Pro plan you can change the
+  schedule to `0 * * * *` for hourly refills. The endpoint is idempotent
+  and the underlying RPC will only top up profiles that have crossed
+  their 4-hour refill window, so any cadence ≥1× per day is safe.
+- **External pinger** (cron-job.org, GitHub Actions scheduled workflows,
+  etc.) hitting the same URL with the `Authorization: Bearer $CRON_SECRET`
+  header — useful if you want hourly refills without upgrading to Pro.
 
 Verify after first run: rows in `analytics_events` with `name='cron.refill_hearts'`.
 
