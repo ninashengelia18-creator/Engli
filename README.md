@@ -39,7 +39,7 @@ npm install
 > revision — the client no longer passes `p_user_id` to those RPCs.
 >
 > The `20260516_hearts_refill_batch.sql` migration adds the
-> `refill_hearts_batch()` service-role function used by the hourly
+> `refill_hearts_batch()` service-role function used by the
 > hearts-refill cron at `/api/cron/refill-hearts` (see "Cron jobs" below).
 >
 > The `20260517_analytics_events.sql` migration creates the
@@ -88,9 +88,9 @@ Add Stripe webhook URL after deploy: `https://your-domain.com/api/stripe/webhook
 automatically when the env var is set on the project. Endpoints that do
 not see the secret return 503 so they can never run open.
 
-- **Hourly: `/api/cron/refill-hearts`** — calls `refill_hearts_batch()`
-  (`20260516_hearts_refill_batch.sql`), which refills any profile that
-  is 4+ hours past its last refill.
+- **Daily: `/api/cron/refill-hearts`** (04:00 UTC) — calls
+  `refill_hearts_batch()` (`20260516_hearts_refill_batch.sql`), which
+  refills any profile that is 4+ hours past its last refill.
 - **Weekly: `/api/cron/league-rollover`** (Mon 00:05 UTC) — calls
   `rollover_leagues()` (`20260519_leagues_rollover.sql`), which computes
   final ranks for every active league cohort, promotes the top 7,
@@ -98,8 +98,18 @@ not see the secret return 503 so they can never run open.
   week's leagues. The function is idempotent; firing it a second time
   on the same end_date is a no-op once leagues are archived.
 
+> **Vercel Hobby compatibility:** Hobby plans only allow cron schedules
+> that fire **at most once per day**, so the bundled `vercel.json` ships
+> with a daily hearts refill (`0 4 * * *`). The weekly league rollover
+> is already Hobby-safe. If you're on Vercel **Pro** (or using an
+> external scheduler) and want faster hearts refills, change the
+> `refill-hearts` schedule to `0 * * * *` (hourly) — the endpoint is
+> idempotent and safe to hit at any cadence.
+
 If you'd rather schedule inside Postgres, `pg_cron` can call the RPCs
-directly — the HTTP endpoints become redundant in that case.
+directly — the HTTP endpoints become redundant in that case. External
+pingers (cron-job.org, GitHub Actions scheduled workflows, etc.) also
+work as long as they send `Authorization: Bearer $CRON_SECRET`.
 
 ## Rate limiting
 
