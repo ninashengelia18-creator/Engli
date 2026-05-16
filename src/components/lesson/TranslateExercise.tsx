@@ -31,19 +31,28 @@ export default function TranslateExercise({
       <h2 className="text-xl font-extrabold text-center mb-1">თარგმნე ქართულად</h2>
       <p className="text-sm text-ink-light text-center mb-6">Translate to Georgian</p>
 
-      <div className="card flex items-center gap-3 mb-4 p-4">
-        <button onClick={() => speak(data.source_en)} className="text-secondary">
+      <div className="card flex items-center gap-3 mb-4 p-4 bg-bg-soft">
+        <button
+          onClick={() => speak(data.source_en)}
+          aria-label="მოუსმინე"
+          className="text-secondary hover:text-secondary-dark transition-colors"
+        >
           <Volume2 size={22} />
         </button>
-        <div className="font-extrabold text-lg">{data.source_en}</div>
+        <div className="font-extrabold text-lg leading-tight">{data.source_en}</div>
       </div>
 
+      <label htmlFor="translate-input" className="sr-only">
+        პასუხი
+      </label>
       <textarea
+        id="translate-input"
         value={answer}
         onChange={(e) => setAnswer(e.target.value)}
         disabled={!!feedback}
         placeholder="დაწერე ქართულად..."
-        className="w-full border-2 border-border rounded-xl p-3 min-h-[100px] focus:outline-none focus:border-secondary text-base"
+        rows={3}
+        className="input min-h-[100px] resize-none"
       />
 
       {feedback === 'wrong' && (

@@ -25,30 +25,31 @@ export default function MatchExercise({
       <h2 className="text-xl font-extrabold text-center mb-1">{data.prompt_ka}</h2>
       <p className="text-sm text-ink-light text-center mb-6">{data.prompt_en}</p>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div role="radiogroup" aria-label={data.prompt_ka} className="grid grid-cols-2 gap-3 mb-4">
         {data.choices.map((c) => {
           const isSelected = selected === c.en;
           const showCorrect = feedback && c.en === data.correct;
           const showWrong = feedback === 'wrong' && isSelected;
+          const tileClass = showCorrect
+            ? 'tile tile-correct'
+            : showWrong
+              ? 'tile tile-wrong'
+              : isSelected
+                ? 'tile tile-selected'
+                : 'tile';
           return (
             <button
               key={c.en}
+              role="radio"
+              aria-checked={isSelected}
               disabled={!!feedback}
               onClick={() => {
                 setSelected(c.en);
                 speak(c.en);
               }}
-              className={`p-4 rounded-2xl border-2 border-b-4 transition-all min-h-[110px] flex flex-col items-center justify-center gap-2 ${
-                showCorrect
-                  ? 'bg-green-100 border-primary text-primary-dark'
-                  : showWrong
-                    ? 'bg-red-100 border-danger text-danger'
-                    : isSelected
-                      ? 'bg-blue-50 border-secondary text-secondary'
-                      : 'bg-white border-border'
-              }`}
+              className={`${tileClass} min-h-[110px] flex flex-col items-center justify-center gap-2`}
             >
-              {c.emoji && <div className="text-3xl">{c.emoji}</div>}
+              {c.emoji && <div className="text-3xl" aria-hidden="true">{c.emoji}</div>}
               <div className="font-bold">{c.en}</div>
               <div className="text-xs text-ink-light">{c.ka}</div>
             </button>

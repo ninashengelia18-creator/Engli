@@ -33,15 +33,26 @@ export default function BuildExercise({
 
   return (
     <div className="flex flex-col h-full">
-      <h2 className="text-xl font-extrabold text-center mb-2">ააგე წინადადება</h2>
+      <h2 className="text-xl font-extrabold text-center mb-1">ააგე წინადადება</h2>
       <p className="text-sm text-ink-light text-center mb-6">{data.ka}</p>
 
-      <div className="min-h-[80px] border-b-2 border-border mb-4 p-2 flex flex-wrap gap-2">
+      <div
+        aria-label="აგებული წინადადება"
+        className={`min-h-[88px] rounded-xl border-2 border-dashed mb-3 p-3 flex flex-wrap gap-2 transition-colors ${
+          built.length === 0 ? 'border-border bg-bg-soft' : 'border-border bg-white'
+        }`}
+      >
+        {built.length === 0 && (
+          <span className="text-xs text-ink-lighter font-semibold self-center mx-auto">
+            დააჭირე სიტყვებს
+          </span>
+        )}
         {built.map((b, i) => (
           <button
             key={i}
             onClick={() => removeWord(i)}
-            className="bg-white border-2 border-border border-b-4 rounded-xl px-3 py-2 font-bold"
+            aria-label={`წაშალე ${b.word}`}
+            className="bg-white border-2 border-border border-b-4 rounded-xl px-3 py-2 font-bold active:translate-y-[2px] active:border-b-2 transition-all duration-75"
           >
             {b.word}
           </button>
@@ -55,8 +66,9 @@ export default function BuildExercise({
             <button
               key={i}
               onClick={() => addWord(w, i)}
-              className={`bg-white border-2 border-border border-b-4 rounded-xl px-3 py-2 font-bold ${
-                used ? 'invisible' : ''
+              disabled={used || !!feedback}
+              className={`bg-white border-2 border-border border-b-4 rounded-xl px-3 py-2 font-bold active:translate-y-[2px] active:border-b-2 transition-all duration-75 ${
+                used ? 'opacity-0 pointer-events-none' : ''
               }`}
             >
               {w}
@@ -65,11 +77,18 @@ export default function BuildExercise({
         })}
       </div>
 
+      {feedback === 'wrong' && (
+        <p className="text-sm text-ink-light mb-3 text-center">
+          სწორი პასუხი:{' '}
+          <strong className="text-primary-dark">{data.target.join(' ')}</strong>
+        </p>
+      )}
+
       {!feedback && (
         <button
           onClick={handleCheck}
           disabled={built.length !== data.target.length}
-          className="btn-primary mt-auto"
+          className="btn-primary mt-auto w-full"
         >
           შემოწმება
         </button>

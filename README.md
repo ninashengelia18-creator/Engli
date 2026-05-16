@@ -41,6 +41,11 @@ npm install
 > The `20260516_hearts_refill_batch.sql` migration adds the
 > `refill_hearts_batch()` service-role function used by the
 > hearts-refill cron at `/api/cron/refill-hearts` (see "Cron jobs" below).
+>
+> The `20260517_analytics_events.sql` migration creates the
+> `analytics_events` table used by the lightweight `src/lib/analytics.ts`
+> client. Writes are fire-and-forget; if the table is missing the app
+> still works, you'll just lose product event telemetry.
 
 ### 3. Set up Stripe
 1. [Stripe Dashboard](https://dashboard.stripe.com) → Products → create:

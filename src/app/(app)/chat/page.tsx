@@ -19,10 +19,10 @@ export default function ChatPage() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, loading]);
 
   async function send(content: string) {
-    if (!content.trim()) return;
+    if (!content.trim() || loading) return;
     const newMessages: Msg[] = [...messages, { role: 'user', content }];
     setMessages(newMessages);
     setInput('');
@@ -60,12 +60,13 @@ export default function ChatPage() {
     if (newId && newId !== conversationId) setConversationId(newId);
     setMessages([...newMessages, { role: 'assistant', content: reply }]);
     setLoading(false);
-    // Speak only English part
+    // Speak only English part — strip parenthetical Georgian.
     const englishOnly = reply.replace(/\(.+?\)/g, '').trim();
-    speak(englishOnly);
+    if (englishOnly) speak(englishOnly);
   }
 
   function handleMic() {
+    if (listening || loading) return;
     setListening(true);
     listen('', (r) => {
       setListening(false);
@@ -75,10 +76,10 @@ export default function ChatPage() {
 
   if (needsUpgrade) {
     return (
-      <main className="px-6 py-12 text-center">
-        <div className="text-6xl mb-4">🦊</div>
+      <main className="px-6 py-12 text-center flex flex-col items-center">
+        <div className="text-6xl mb-4" aria-hidden="true">🦊</div>
         <h1 className="text-xl font-extrabold mb-2">AI მასწავლებელი Premium-შია</h1>
-        <p className="text-ink-light text-sm mb-6">
+        <p className="text-ink-light text-sm mb-6 max-w-xs">
           ფოქსისთან საუბრისთვის დაგჭირდება Premium ანგარიში
         </p>
         <a href="/upgrade" className="btn-primary inline-block">
@@ -90,46 +91,72 @@ export default function ChatPage() {
 
   return (
     <main className="flex flex-col h-full">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3"
+        aria-live="polite"
+      >
         {messages.map((m, i) => (
           <div
             key={i}
-            className={`max-w-[80%] p-3 rounded-2xl ${
+            className={
               m.role === 'assistant'
-                ? 'bg-bg-soft border-2 border-border self-start'
-                : 'bg-secondary text-white self-end ml-auto'
-            }`}
+                ? 'max-w-[80%] p-3 rounded-2xl bg-bg-soft border-2 border-border self-start'
+                : 'max-w-[80%] p-3 rounded-2xl bg-secondary text-white self-end'
+            }
           >
-            <p className="text-sm whitespace-pre-wrap">{m.content}</p>
+            <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.content}</p>
           </div>
         ))}
         {loading && (
           <div className="bg-bg-soft border-2 border-border self-start max-w-[60%] p-3 rounded-2xl">
-            <span className="text-sm">...</span>
+            <TypingDots />
           </div>
         )}
       </div>
 
       <div className="border-t-2 border-border p-3 flex items-center gap-2">
+        <label htmlFor="chat-input" className="sr-only">
+          შეტყობინება
+        </label>
         <input
+          id="chat-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && send(input)}
           placeholder="Type or tap mic..."
-          className="flex-1 border-2 border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-secondary"
+          disabled={loading}
+          className="flex-1 border-2 border-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-secondary disabled:opacity-60"
         />
         <button
           onClick={handleMic}
-          className={`w-11 h-11 rounded-full flex items-center justify-center text-white ${
+          disabled={loading}
+          aria-label={listening ? 'ვუსმენ' : 'მიკროფონი'}
+          className={`w-11 h-11 rounded-full flex items-center justify-center text-white shrink-0 ${
             listening ? 'bg-primary animate-pulse' : 'bg-danger'
-          }`}
+          } disabled:opacity-50`}
         >
           <Mic size={20} />
         </button>
-        <button onClick={() => send(input)} className="w-11 h-11 rounded-full bg-secondary text-white flex items-center justify-center">
+        <button
+          onClick={() => send(input)}
+          disabled={!input.trim() || loading}
+          aria-label="გაგზავნა"
+          className="w-11 h-11 rounded-full bg-secondary text-white flex items-center justify-center disabled:opacity-50 shrink-0"
+        >
           <Send size={18} />
         </button>
       </div>
     </main>
+  );
+}
+
+function TypingDots() {
+  return (
+    <span className="inline-flex gap-1" aria-label="წერს...">
+      <span className="w-2 h-2 rounded-full bg-ink-lighter animate-pulse" />
+      <span className="w-2 h-2 rounded-full bg-ink-lighter animate-pulse [animation-delay:120ms]" />
+      <span className="w-2 h-2 rounded-full bg-ink-lighter animate-pulse [animation-delay:240ms]" />
+    </span>
   );
 }
