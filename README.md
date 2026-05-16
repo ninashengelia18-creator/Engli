@@ -39,7 +39,7 @@ npm install
 > revision — the client no longer passes `p_user_id` to those RPCs.
 >
 > The `20260516_hearts_refill_batch.sql` migration adds the
-> `refill_hearts_batch()` service-role function used by the hourly
+> `refill_hearts_batch()` service-role function used by the
 > hearts-refill cron at `/api/cron/refill-hearts` (see "Cron jobs" below).
 >
 > The `20260517_analytics_events.sql` migration creates the
@@ -78,7 +78,7 @@ Add Stripe webhook URL after deploy: `https://your-domain.com/api/stripe/webhook
 
 ## Cron jobs
 
-`vercel.json` registers an hourly Vercel Cron that hits
+`vercel.json` registers a **daily** Vercel Cron (04:00 UTC) that hits
 `/api/cron/refill-hearts`. The endpoint is gated by a shared secret
 (`CRON_SECRET`) which Vercel Cron forwards as `Authorization: Bearer …`
 automatically when the env var is set on the project. The endpoint calls
@@ -87,9 +87,17 @@ the `refill_hearts_batch()` Postgres function (added in
 4+ hours past its last refill. If `CRON_SECRET` is unset the endpoint
 returns 503 so it can't accidentally run open.
 
+> **Vercel Hobby compatibility:** Hobby plans only allow daily crons, so
+> the bundled `vercel.json` ships with `0 4 * * *`. If you're on Vercel
+> **Pro** (or using an external scheduler) and want faster hearts
+> refills, change the schedule to `0 * * * *` (hourly) — the endpoint
+> itself is idempotent and safe to hit at any cadence.
+
 If you'd rather schedule inside Postgres, `pg_cron` can call
-`select public.refill_hearts_batch();` on the same hourly cadence — the
-HTTP endpoint becomes redundant in that case.
+`select public.refill_hearts_batch();` at whatever cadence you like —
+the HTTP endpoint becomes redundant in that case. External pingers
+(cron-job.org, GitHub Actions scheduled workflows, etc.) also work as
+long as they send `Authorization: Bearer $CRON_SECRET`.
 
 ## Rate limiting
 
