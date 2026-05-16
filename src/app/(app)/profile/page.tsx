@@ -159,7 +159,33 @@ export default async function ProfilePage() {
         <span className="text-ink-lighter">→</span>
       </Link>
 
+      <Link
+        href="/help"
+        className="card mb-3 flex items-center justify-between active:translate-y-[1px] transition-transform duration-75"
+      >
+        <div>
+          <div className="font-bold">
+            <span aria-hidden="true">💬</span> დახმარება და უსაფრთხოება
+          </div>
+          <div className="text-xs text-ink-light">
+            FAQ, AI-ის შესახებ, კონტაქტი
+          </div>
+        </div>
+        <span className="text-ink-lighter">→</span>
+      </Link>
+
       <SignOutButton />
+
+      <nav
+        aria-label="საინფორმაციო ბმულები"
+        className="mt-6 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-ink-light"
+      >
+        <Link href="/parent-guide" className="underline">მშობელს</Link>
+        <Link href="/safety" className="underline">უსაფრთხოება</Link>
+        <Link href="/about-ai" className="underline">AI-ის შესახებ</Link>
+        <Link href="/privacy" className="underline">კონფიდენციალურობა</Link>
+        <Link href="/terms" className="underline">პირობები</Link>
+      </nav>
     </main>
   );
 }

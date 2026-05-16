@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: install · type-check · lint · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Next.js build needs these to exist but does not need real values at
+      # build time. The app reads them at runtime so dummy values are fine
+      # for type-check + build smoke tests.
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-dummy-service-key
+      STRIPE_SECRET_KEY: sk_test_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_dummy
+      STRIPE_PRICE_MONTHLY: price_dummy_monthly
+      STRIPE_PRICE_ANNUAL: price_dummy_annual
+      STRIPE_PRICE_FAMILY: price_dummy_family
+      ANTHROPIC_API_KEY: sk-ant-dummy
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      ADMIN_EMAILS: admin@example.com
+      CRON_SECRET: ci-dummy-cron-secret
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint -- --max-warnings=0
+
+      - name: Build
+        run: npm run build

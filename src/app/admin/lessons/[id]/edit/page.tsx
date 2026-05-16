@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import EditLessonClient from './EditLessonClient';
+import LessonQualityChecks from './LessonQualityChecks';
 
 export default async function EditLessonPage({ params }: { params: { id: string } }) {
   const admin = createServiceRoleClient();
@@ -18,5 +19,12 @@ export default async function EditLessonPage({ params }: { params: { id: string 
     .eq('lesson_id', params.id)
     .order('display_order');
 
-  return <EditLessonClient lesson={lesson} exercises={exercises ?? []} />;
+  const exerciseList = exercises ?? [];
+
+  return (
+    <div className="space-y-6">
+      <LessonQualityChecks exercises={exerciseList} />
+      <EditLessonClient lesson={lesson} exercises={exerciseList} />
+    </div>
+  );
 }

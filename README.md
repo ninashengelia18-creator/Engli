@@ -192,6 +192,15 @@ Submit to App Store and Google Play following their standard flows.
 4. **Push notifications.** Duolingo's #1 retention mechanic. See `docs/push-notifications.md` (not yet written).
 5. **Apple Sign In.** Required for App Store approval if you have any third-party login.
 
+## Going to production
+
+See [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md) for an
+end-to-end walkthrough of Supabase, Stripe, Vercel, Upstash, cron, AI
+tutor budgets, and mobile builds.
+
+CI runs on every PR via [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+(install · type-check · lint · build) — keep it green.
+
 ## Brand
 - Name: **Engli (ენგლი)**
 - Mascot: Foxy 🦊
