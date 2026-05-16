@@ -45,7 +45,10 @@ Engli runs two cron-style HTTP endpoints. They're authenticated with
 
 ### `/api/cron/refill-hearts`
 
-- Cadence: hourly
+- Cadence: **daily** by default (04:00 UTC). The bundled `vercel.json`
+  ships this schedule because Vercel Hobby only allows once-per-day
+  crons. On Pro (or with an external scheduler) you can bump it back to
+  hourly — see "Configuring the schedule" below.
 - What: invokes `refill_hearts_batch()` to grant +1 heart to users whose
   `hearts < 5` and whose `hearts_refilled_at` is older than the refill
   window.
@@ -66,14 +69,22 @@ Engli runs two cron-style HTTP endpoints. They're authenticated with
 
 ### Configuring the schedule
 
-Two paths, pick one:
+Three paths, pick one:
 
-- **Vercel Cron** (recommended): add entries to `vercel.json`. Vercel
-  injects the `Authorization` header automatically when the project has
-  `CRON_SECRET` set.
-- **Supabase pg_cron**: call the underlying RPC directly from inside the
-  database. Cuts out the HTTP hop entirely — useful if you want to keep
-  the hearts refill working even when Vercel is down.
+- **Vercel Cron, Hobby (default)**: the shipped `vercel.json` runs
+  hearts refill once a day at 04:00 UTC and league rollover weekly
+  (Mon 00:05 UTC). Both schedules satisfy Hobby's once-per-day limit
+  and deploy without an upgrade. Vercel injects the `Authorization`
+  header automatically when the project has `CRON_SECRET` set.
+- **Vercel Cron, Pro**: change `refill-hearts` to `0 * * * *` for
+  hourly refills (or any sub-daily cadence). The endpoint is
+  idempotent — the underlying RPC only tops up profiles past their
+  4-hour refill window — so faster cadence is safe.
+- **Supabase pg_cron / external pinger**: call the underlying RPC
+  directly from inside the database, or hit the HTTP endpoint from
+  any external scheduler (cron-job.org, GitHub Actions, etc.) with
+  `Authorization: Bearer $CRON_SECRET`. Either path lets you run
+  hourly refills while staying on Vercel Hobby.
 
 ## Stripe webhooks
 
