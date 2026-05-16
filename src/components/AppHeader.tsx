@@ -15,7 +15,10 @@ export default function AppHeader({
     (subscription?.status === 'active' || subscription?.status === 'trialing');
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b-2 border-border px-4 py-3 flex items-center justify-between">
+    <header
+      className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b-2 border-border px-4 py-3 flex items-center justify-between"
+      style={{ paddingTop: 'calc(0.75rem + var(--safe-top))' }}
+    >
       <div className="flex items-center gap-2">
         {isPremium && (
           <Crown size={20} className="text-accent" fill="currentColor" aria-label="Premium" />

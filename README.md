@@ -83,26 +83,33 @@ Add Stripe webhook URL after deploy: `https://your-domain.com/api/stripe/webhook
 
 ## Cron jobs
 
-`vercel.json` registers a **daily** Vercel Cron (04:00 UTC) that hits
-`/api/cron/refill-hearts`. The endpoint is gated by a shared secret
+`vercel.json` registers two Vercel Crons, both gated by a shared secret
 (`CRON_SECRET`) which Vercel Cron forwards as `Authorization: Bearer …`
-automatically when the env var is set on the project. The endpoint calls
-the `refill_hearts_batch()` Postgres function (added in
-`20260516_hearts_refill_batch.sql`), which refills any profile that is
-4+ hours past its last refill. If `CRON_SECRET` is unset the endpoint
-returns 503 so it can't accidentally run open.
+automatically when the env var is set on the project. Endpoints that do
+not see the secret return 503 so they can never run open.
 
-> **Vercel Hobby compatibility:** Hobby plans only allow daily crons, so
-> the bundled `vercel.json` ships with `0 4 * * *`. If you're on Vercel
-> **Pro** (or using an external scheduler) and want faster hearts
-> refills, change the schedule to `0 * * * *` (hourly) — the endpoint
-> itself is idempotent and safe to hit at any cadence.
+- **Daily: `/api/cron/refill-hearts`** (04:00 UTC) — calls
+  `refill_hearts_batch()` (`20260516_hearts_refill_batch.sql`), which
+  refills any profile that is 4+ hours past its last refill.
+- **Weekly: `/api/cron/league-rollover`** (Mon 00:05 UTC) — calls
+  `rollover_leagues()` (`20260519_leagues_rollover.sql`), which computes
+  final ranks for every active league cohort, promotes the top 7,
+  demotes the bottom 5 (tier 2+), archives the week, and pre-seeds next
+  week's leagues. The function is idempotent; firing it a second time
+  on the same end_date is a no-op once leagues are archived.
 
-If you'd rather schedule inside Postgres, `pg_cron` can call
-`select public.refill_hearts_batch();` at whatever cadence you like —
-the HTTP endpoint becomes redundant in that case. External pingers
-(cron-job.org, GitHub Actions scheduled workflows, etc.) also work as
-long as they send `Authorization: Bearer $CRON_SECRET`.
+> **Vercel Hobby compatibility:** Hobby plans only allow cron schedules
+> that fire **at most once per day**, so the bundled `vercel.json` ships
+> with a daily hearts refill (`0 4 * * *`). The weekly league rollover
+> is already Hobby-safe. If you're on Vercel **Pro** (or using an
+> external scheduler) and want faster hearts refills, change the
+> `refill-hearts` schedule to `0 * * * *` (hourly) — the endpoint is
+> idempotent and safe to hit at any cadence.
+
+If you'd rather schedule inside Postgres, `pg_cron` can call the RPCs
+directly — the HTTP endpoints become redundant in that case. External
+pingers (cron-job.org, GitHub Actions scheduled workflows, etc.) also
+work as long as they send `Authorization: Bearer $CRON_SECRET`.
 
 ## Rate limiting
 
@@ -149,6 +156,33 @@ npx cap open android # opens Android Studio
 ```
 
 Submit to App Store and Google Play following their standard flows.
+
+### PWA + mobile checklist
+
+- `public/manifest.json` declares the standalone PWA (start URL `/learn`,
+  green theme, portrait, a Georgian name, and home-screen shortcuts for
+  *სწავლა* and *AI მასწავლებელი*). Drop a 512×512 `icon-maskable-512.png`
+  in `public/` to enable Android's maskable adaptive icon — the manifest
+  already references it.
+- The root layout sets `viewport-fit: cover` and the global stylesheet
+  exposes `--safe-top` / `--safe-bottom` via `env(safe-area-inset-*)`.
+  `AppHeader` and `BottomNav` already consume those.
+- `capacitor.config.ts` sets iOS `contentInset: 'always'`, the splash
+  screen background color, and `Keyboard.resize: 'native'` so the input
+  field never gets covered when the on-screen keyboard appears.
+
+### Speech / pronunciation caveats
+
+`src/lib/speech.ts` wraps the Web Speech API:
+
+- **TTS** prefers an installed `en-US`/`en-GB` voice and re-selects when
+  the browser fires `voiceschanged` (Chromium loads voices async).
+- **STT** is **not supported on iOS Safari** — `isSpeechRecognitionSupported()`
+  is checked up front and the Speak exercise renders a disabled mic with
+  a "Skip" button. Permission denials surface as a Georgian-language
+  "let me use the microphone" prompt with a skip path. Network failures
+  (which Chrome sometimes emits for offline use) are caught and
+  user-visible. None of these branches block lesson progress.
 
 ## Where to put energy first
 

@@ -43,6 +43,9 @@ export default function LessonPlayer({
   const [showQuit, setShowQuit] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [completeError, setCompleteError] = useState<string | null>(null);
+  const [newAchievements, setNewAchievements] = useState<
+    { slug: string; title_ka: string; emoji: string }[]
+  >([]);
   const startedAt = useRef(Date.now());
   const attemptsByExercise = useRef<Record<string, number>>({});
 
@@ -105,6 +108,16 @@ export default function LessonPlayer({
           setCompleteError(error || 'შენახვა ვერ მოხერხდა');
         } else {
           track({ name: 'lesson_complete', lesson_id: lessonId, mistakes, seconds });
+          try {
+            const payload = (await res.json()) as {
+              achievements?: { slug: string; title_ka: string; emoji: string }[];
+            };
+            if (payload.achievements && payload.achievements.length > 0) {
+              setNewAchievements(payload.achievements);
+            }
+          } catch {
+            // ignore: achievements display is optional
+          }
         }
       } catch {
         setCompleteError('კავშირი ვერ მოხერხდა');
@@ -143,6 +156,7 @@ export default function LessonPlayer({
         mistakes={mistakes}
         lessonTitle={lessonTitle}
         error={completeError}
+        achievements={newAchievements}
       />
     );
   }

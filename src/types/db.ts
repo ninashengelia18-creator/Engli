@@ -176,3 +176,22 @@ export type LessonProgress = {
   first_completed_at: string | null;
   last_attempted_at: string;
 };
+
+export type Achievement = {
+  id: string;
+  slug: string;
+  title_en: string;
+  title_ka: string;
+  description_en: string | null;
+  description_ka: string | null;
+  emoji: string | null;
+  xp_reward: number;
+  gem_reward: number;
+};
+
+export type UserAchievement = {
+  id: string;
+  user_id: string;
+  achievement_id: string;
+  earned_at: string;
+};

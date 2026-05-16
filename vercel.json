@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/refill-hearts",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/league-rollover",
+      "schedule": "5 0 * * 1"
     }
   ]
 }

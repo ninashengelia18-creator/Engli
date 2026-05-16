@@ -1,8 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { Mic, Volume2 } from 'lucide-react';
-import { speak, listen } from '@/lib/speech';
+import { useEffect, useState } from 'react';
+import { Mic, Volume2, MicOff } from 'lucide-react';
+import {
+  speak,
+  listen,
+  isSpeechRecognitionSupported,
+  speechErrorMessageKa,
+  type SpeechErrorCode
+} from '@/lib/speech';
 import type { SpeakData } from '@/types/db';
 
 export default function SpeakExercise({
@@ -16,22 +22,36 @@ export default function SpeakExercise({
 }) {
   const [listening, setListening] = useState(false);
   const [heard, setHeard] = useState('');
-  const [skipped, setSkipped] = useState(false);
+  const [error, setError] = useState<SpeechErrorCode | null>(null);
+  const [supported, setSupported] = useState(true);
+
+  useEffect(() => {
+    setSupported(isSpeechRecognitionSupported());
+  }, []);
 
   function handleMic() {
     if (listening || feedback) return;
     setListening(true);
     setHeard('');
-    listen(data.target, (r) => {
-      setListening(false);
-      if (r.error === 'no-support') {
-        setSkipped(true);
-        return;
-      }
-      setHeard(r.heard || '');
-      onResult(r.success);
-    });
+    setError(null);
+    listen(
+      data.target,
+      (r) => {
+        setListening(false);
+        if (r.error) {
+          setError(r.error);
+          if (r.error === 'no-support') return;
+          // For 'no-speech' the user can just try again — don't bail.
+          return;
+        }
+        setHeard(r.heard || '');
+        onResult(r.success);
+      },
+      { timeoutMs: 7000 }
+    );
   }
+
+  const showSkip = !supported || error === 'no-support' || error === 'permission-denied';
 
   return (
     <div className="flex flex-col h-full">
@@ -53,22 +73,49 @@ export default function SpeakExercise({
       <div className="flex flex-col items-center gap-4">
         <button
           onClick={handleMic}
-          disabled={!!feedback}
-          aria-label={listening ? 'ვუსმენ...' : 'დაჭირე და თქვი'}
-          className={`w-24 h-24 rounded-full flex items-center justify-center text-white shadow-[0_6px_0_0_#C82323] active:translate-y-[3px] active:shadow-[0_3px_0_0_#C82323] transition-all duration-75 ${
-            listening ? 'bg-primary animate-pulse' : 'bg-danger'
+          disabled={!!feedback || !supported}
+          aria-label={
+            listening
+              ? 'ვუსმენ'
+              : !supported
+                ? 'მიკროფონი არ მუშაობს ბრაუზერში'
+                : 'დაიჭირე და თქვი'
+          }
+          aria-pressed={listening}
+          className={`w-24 h-24 rounded-full flex items-center justify-center text-white transition-all duration-75 ${
+            !supported
+              ? 'bg-ink-lighter shadow-none cursor-not-allowed'
+              : listening
+                ? 'bg-primary animate-pulse shadow-[0_6px_0_0_#46a302]'
+                : 'bg-danger shadow-[0_6px_0_0_#C82323] active:translate-y-[3px] active:shadow-[0_3px_0_0_#C82323]'
           }`}
         >
-          <Mic size={36} />
+          {supported ? <Mic size={36} /> : <MicOff size={36} />}
         </button>
-        <p className="text-sm font-bold text-ink-light min-h-[20px]" aria-live="polite">
-          {listening ? 'ვუსმენ...' : heard ? `"${heard}"` : 'დაჭირე და თქვი'}
+        <p
+          className="text-sm font-bold text-ink-light min-h-[20px] text-center px-4"
+          aria-live="polite"
+          role="status"
+        >
+          {listening
+            ? 'ვუსმენ...'
+            : error
+              ? speechErrorMessageKa(error)
+              : heard
+                ? `"${heard}"`
+                : 'დააჭირე და თქვი'}
         </p>
       </div>
 
-      {skipped && !feedback && (
-        <button onClick={() => onResult(true)} className="btn-secondary mt-4">
-          მიკროფონი არ მუშაობს — გამოტოვება
+      {showSkip && !feedback && (
+        <button
+          onClick={() => onResult(true)}
+          className="btn-secondary mt-4"
+          aria-label="გადახტი ამ სავარჯიშოს"
+        >
+          {error === 'permission-denied'
+            ? 'ნებართვის გარეშე გავაგრძელოთ'
+            : 'მიკროფონი არ მუშაობს — გამოტოვება'}
         </button>
       )}
     </div>
