@@ -1,20 +1,61 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
+
+export const runtime = 'nodejs';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
+// Cap per-message content to keep prompts bounded.
+const MAX_MESSAGES = 30;
+const MAX_CONTENT_CHARS = 2000;
+
+type ChatMessage = { role: 'user' | 'assistant'; content: string };
+
+function sanitizeMessages(input: unknown): ChatMessage[] | null {
+  if (!Array.isArray(input)) return null;
+  const out: ChatMessage[] = [];
+  for (const m of input.slice(-MAX_MESSAGES)) {
+    if (!m || typeof m !== 'object') return null;
+    const role = (m as { role?: unknown }).role;
+    const content = (m as { content?: unknown }).content;
+    if (role !== 'user' && role !== 'assistant') return null;
+    if (typeof content !== 'string') return null;
+    out.push({ role, content: content.slice(0, MAX_CONTENT_CHARS) });
+  }
+  return out;
+}
+
 export async function POST(req: Request) {
-  const { messages, scenario } = (await req.json()) as {
-    messages: { role: 'user' | 'assistant'; content: string }[];
-    scenario?: string;
-  };
+  let payload: { messages?: unknown; scenario?: unknown };
+  try {
+    payload = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const messages = sanitizeMessages(payload.messages);
+  if (!messages || messages.length === 0) {
+    return NextResponse.json({ error: 'Invalid messages' }, { status: 400 });
+  }
+  const scenario =
+    typeof payload.scenario === 'string' ? payload.scenario.slice(0, 200) : undefined;
 
   const supabase = createClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Per-user rate limit: 20 messages per minute. Protects Anthropic spend.
+  const rl = checkRateLimit(`ai-tutor:${user.id}`, 20, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', retryAfter: rl.retryAfterSeconds },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+    );
+  }
 
   // Premium gate
   const admin = createServiceRoleClient();
