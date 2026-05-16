@@ -18,6 +18,36 @@ A complete production-grade Next.js + Supabase + Stripe + Claude AI codebase for
 - ✅ Admin scaffold (locked to admin emails)
 - ✅ Full Supabase schema with RLS
 
+## For developers — 60-second tour
+
+```bash
+git clone https://github.com/ninashengelia18-creator/Engli.git
+cd Engli
+npm ci
+cp .env.example .env.local           # fill in Supabase / Stripe / Anthropic
+npm run dev                           # http://localhost:3000
+
+# At any point:
+npm run type-check                   # tsc --noEmit
+npm run lint                         # next lint
+npm run build                        # next build
+npm run test:smoke                   # boots a production server and runs
+                                     # node:test smoke checks against it
+```
+
+**No credentials yet?** You can still try the product:
+
+```bash
+npm run dev    # then open http://localhost:3000/demo
+```
+
+`/demo` is a self-contained sample lesson — no Supabase, no Stripe, no
+Anthropic. Good for design review, screenshots, and onboarding new
+contributors.
+
+Day-two operations: see [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
+Launch readiness: see [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md).
+
 ## Quick start
 
 ### 1. Install
@@ -199,7 +229,21 @@ end-to-end walkthrough of Supabase, Stripe, Vercel, Upstash, cron, AI
 tutor budgets, and mobile builds.
 
 CI runs on every PR via [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
-(install · type-check · lint · build) — keep it green.
+(install · type-check · lint · build · smoke tests) — keep it green.
+
+## Smoke tests
+
+`npm run test:smoke` starts a local `next start` against the production
+build, then runs `node --test` suites in `tests/smoke/` covering the
+landing page, the auth pages, the demo lesson route, every marketing
+page, the anonymous redirect on every authenticated route, and the
+contract of every API endpoint (rejecting bad input, requiring auth /
+bearer / signature). The whole suite finishes in well under 5 seconds
+locally and uses only dummy env vars — no real Supabase, Stripe, or
+Anthropic traffic.
+
+The CI job runs it after `npm run build`. If you add a new public
+page or API route, drop a test in `tests/smoke/`.
 
 ## Brand
 - Name: **Engli (ენგლი)**
