@@ -46,6 +46,11 @@ npm install
 > `analytics_events` table used by the lightweight `src/lib/analytics.ts`
 > client. Writes are fire-and-forget; if the table is missing the app
 > still works, you'll just lose product event telemetry.
+>
+> The `20260518_curriculum_expansion.sql` migration adds three new
+> Beginner units (food & drink, my body, school) plus an entry-level
+> Intermediate world ("Everyday English"). All inserts are idempotent —
+> safe to re-run.
 
 ### 3. Set up Stripe
 1. [Stripe Dashboard](https://dashboard.stripe.com) → Products → create:
@@ -107,6 +112,28 @@ Upstash Redis (recommended for production). Without those env vars the
 limiter falls back to an in-memory per-Node-process map — fine for local
 dev, "best effort" on Vercel where requests can land on different
 lambdas.
+
+## Admin CMS
+
+`/admin` is gated by `ADMIN_EMAILS` (comma-separated). Once you're signed
+in with a listed email you can:
+
+- **Worlds / Units / Lessons** — full CRUD with slug, bilingual titles,
+  emoji, premium/published toggles, and a per-record `display_order`
+  that the learner-facing UI sorts by.
+- **Exercises** — add Learn, Match, Listen, Speak, Build, Translate, and
+  Story exercises. Each type is validated server-side before insert
+  (e.g. Match's correct answer must exactly equal one of the choices,
+  Build's word bank must contain every target word). Re-order with the
+  up/down buttons.
+- **Analytics** — `/admin/analytics` aggregates the last 14 days of
+  events from `analytics_events`: DAU sparkline, lesson start/complete
+  funnel, abandon rate, top lessons, exercises learners get stuck on,
+  upgrade CTR, onboarding goal mix.
+
+Service-role writes bypass RLS; admin email gating is enforced in
+`src/app/admin/layout.tsx` and re-asserted at the top of every server
+action in `src/app/admin/actions.ts`.
 
 ## Mobile apps
 
