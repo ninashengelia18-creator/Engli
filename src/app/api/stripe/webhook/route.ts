@@ -50,7 +50,17 @@ export async function POST(req: Request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.metadata?.user_id;
+        // Resolve user_id from the most trustworthy signals first. metadata
+        // is set by /api/checkout against the authenticated server session.
+        // client_reference_id is a parallel signal. Customer metadata is a
+        // last-resort fallback for legacy customers.
+        let userId = session.metadata?.user_id ?? session.client_reference_id ?? null;
+        if (!userId && typeof session.customer === 'string') {
+          const customer = await stripe.customers.retrieve(session.customer);
+          if (customer && !('deleted' in customer && customer.deleted)) {
+            userId = (customer.metadata?.supabase_user_id as string | undefined) ?? null;
+          }
+        }
         if (!userId || !session.subscription) break;
 
         const sub = await stripe.subscriptions.retrieve(session.subscription as string);
